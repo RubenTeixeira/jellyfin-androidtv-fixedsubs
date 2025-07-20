@@ -35,4 +35,4 @@ jobs:
           name: build-artifacts
           retention-days: 14
           if-no-files-found: error
-          path: build/gh-app-publish/
+          path: build/jellyfin-publish/
