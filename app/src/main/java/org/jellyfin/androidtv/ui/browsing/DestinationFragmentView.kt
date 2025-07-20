@@ -16,6 +16,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.navigation.NavigationAction
+import timber.log.Timber
 import java.util.Stack
 
 private class HistoryEntry(
@@ -151,12 +152,16 @@ class DestinationFragmentView @JvmOverloads constructor(
 
 			// Attach or add next fragment
 			if (fragment.isDetached) attach(fragment)
-			else add(container.id, fragment, FRAGMENT_TAG_CONTENT)
+			else replace(container.id, fragment, FRAGMENT_TAG_CONTENT)
 		}
 
-		// Commit
-		if (fragmentManager.isStateSaved) transaction.commitNowAllowingStateLoss()
-		else transaction.commitNow()
+		if (fragmentManager.isDestroyed) {
+			Timber.w("FragmentManager is already destroyed")
+		} else if (fragmentManager.isStateSaved) {
+			transaction.commitAllowingStateLoss()
+		} else {
+			transaction.commit()
+		}
 	}
 
 	override fun onSaveInstanceState(): Parcelable {
@@ -166,7 +171,7 @@ class DestinationFragmentView @JvmOverloads constructor(
 		// Save state
 		return bundleOf(
 			BUNDLE_SUPER to super.onSaveInstanceState(),
-			BUNDLE_HISTORY to history.toTypedArray()
+			BUNDLE_HISTORY to ArrayList(history),
 		)
 	}
 
@@ -177,11 +182,10 @@ class DestinationFragmentView @JvmOverloads constructor(
 		// Call parent
 		@Suppress("DEPRECATION")
 		val parent = state.getParcelable<Parcelable>(BUNDLE_SUPER)
-		if (parent != null) super.onRestoreInstanceState(parent)
+		super.onRestoreInstanceState(parent)
 
 		// Restore history
-		@Suppress("UNCHECKED_CAST")
-		val savedHistory = BundleCompat.getParcelableArray(state, BUNDLE_HISTORY, HistoryEntry::class.java) as Array<HistoryEntry>?
+		val savedHistory = BundleCompat.getParcelableArrayList(state, BUNDLE_HISTORY, HistoryEntry::class.java)
 		if (savedHistory != null) {
 			history.clear()
 			history.addAll(savedHistory)

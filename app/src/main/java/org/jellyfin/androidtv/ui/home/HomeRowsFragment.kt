@@ -32,7 +32,6 @@ import org.jellyfin.androidtv.data.repository.CustomMessageRepository
 import org.jellyfin.androidtv.data.repository.NotificationsRepository
 import org.jellyfin.androidtv.data.repository.UserViewsRepository
 import org.jellyfin.androidtv.data.service.BackgroundService
-import org.jellyfin.androidtv.preference.UserPreferences
 import org.jellyfin.androidtv.preference.UserSettingPreferences
 import org.jellyfin.androidtv.ui.browsing.CompositeClickedListener
 import org.jellyfin.androidtv.ui.browsing.CompositeSelectedListener
@@ -47,6 +46,7 @@ import org.jellyfin.androidtv.ui.presentation.CardPresenter
 import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter
 import org.jellyfin.androidtv.ui.presentation.PositionableListRowPresenter
 import org.jellyfin.androidtv.util.KeyProcessor
+import org.jellyfin.playback.core.PlaybackManager
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.api.sockets.subscribe
@@ -59,10 +59,10 @@ import kotlin.time.Duration.Companion.seconds
 class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyListener {
 	private val api by inject<ApiClient>()
 	private val backgroundService by inject<BackgroundService>()
+	private val playbackManager by inject<PlaybackManager>()
 	private val mediaManager by inject<MediaManager>()
 	private val notificationsRepository by inject<NotificationsRepository>()
 	private val userRepository by inject<UserRepository>()
-	private val userPreferences by inject<UserPreferences>()
 	private val userSettingPreferences by inject<UserSettingPreferences>()
 	private val userViewsRepository by inject<UserViewsRepository>()
 	private val dataRefreshService by inject<DataRefreshService>()
@@ -71,7 +71,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	private val itemLauncher by inject<ItemLauncher>()
 	private val keyProcessor by inject<KeyProcessor>()
 
-	private val helper by lazy { HomeFragmentHelper(requireContext(), userRepository, userViewsRepository) }
+	private val helper by lazy { HomeFragmentHelper(requireContext(), userRepository) }
 
 	// Data
 	private var currentItem: BaseRowItem? = null
@@ -80,7 +80,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 	// Special rows
 	private val notificationsRow by lazy { NotificationsHomeFragmentRow(lifecycleScope, notificationsRepository) }
-	private val nowPlaying by lazy { HomeFragmentNowPlayingRow(mediaManager) }
+	private val nowPlaying by lazy { HomeFragmentNowPlayingRow(lifecycleScope, playbackManager, mediaManager) }
 	private val liveTVRow by lazy { HomeFragmentLiveTVRow(requireActivity(), userRepository, navigationRepository) }
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,7 +94,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 			}
 
 			// Start out with default sections
-			val homesections = userSettingPreferences.homesections
+			val homesections = userSettingPreferences.activeHomesections
 			var includeLiveTvRows = false
 
 			// Check for live TV support
@@ -107,7 +107,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 					isAiring = true,
 					limit = 1,
 				)
-				includeLiveTvRows = !recommendedPrograms.items.isNullOrEmpty()
+				includeLiveTvRows = recommendedPrograms.items.isNotEmpty()
 			}
 
 			// Make sure the rows are empty
@@ -118,9 +118,9 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 			// Actually add the sections
 			for (section in homesections) when (section) {
-				HomeSectionType.LATEST_MEDIA -> rows.add(helper.loadRecentlyAdded())
-				HomeSectionType.LIBRARY_TILES_SMALL -> rows.add(helper.loadLibraryTiles())
-				HomeSectionType.LIBRARY_BUTTONS -> rows.add(helper.loadLibraryTiles())
+				HomeSectionType.LATEST_MEDIA -> rows.add(helper.loadRecentlyAdded(userViewsRepository.views.first()))
+				HomeSectionType.LIBRARY_TILES_SMALL -> rows.add(HomeFragmentViewsRow(small = false))
+				HomeSectionType.LIBRARY_BUTTONS -> rows.add(HomeFragmentViewsRow(small = true))
 				HomeSectionType.RESUME -> rows.add(helper.loadResumeVideo())
 				HomeSectionType.RESUME_AUDIO -> rows.add(helper.loadResumeAudio())
 				HomeSectionType.RESUME_BOOK -> Unit // Books are not (yet) supported
@@ -249,7 +249,9 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 			row: Row?,
 		) {
 			if (item !is BaseRowItem) return
-			itemLauncher.launch(item, (row as ListRow).adapter as ItemRowAdapter, requireContext())
+			if (row !is ListRow) return
+			@Suppress("UNCHECKED_CAST")
+			itemLauncher.launch(item, row.adapter as MutableObjectAdapter<Any>, requireContext())
 		}
 	}
 

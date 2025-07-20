@@ -43,7 +43,6 @@
     <string name="lbl_upcoming">Por Estrenar</string>
     <string name="lbl_sd">SD</string>
     <string name="lbl_runs">Duración</string>
-    <string name="lbl_min">" min"</string>
     <string name="lbl_ends">Termina</string>
     <string name="lbl_directed_by">Dirigido Por</string>
     <string name="lbl_last_played">"Ultimos vistos "</string>
@@ -73,7 +72,7 @@
     <string name="lbl_showing">Demostración</string>
     <string name="desc_debug">Proporcione información adicional para la depuración</string>
     <string name="lbl_enable_debug">Opciones de depuración</string>
-    <string name="lbl_goto_series">Ir a series</string>
+    <string name="lbl_goto_series">Ir a la serie</string>
     <string name="lbl_audio_output">Salida de audio</string>
     <string name="pref_audio_compat">Remezclar a estéreo</string>
     <string name="pref_audio_direct">Directo</string>
@@ -244,8 +243,8 @@
     <string name="msg_no_items">No hay elementos para reproducir</string>
     <string name="too_many_errors">Demasiados errores. Deteniendo la reproducción</string>
     <string name="player_error">Se ha encontrado un error en el reproductor. Re-intentando…</string>
-    <string name="msg_live_tv_prev">¿Desea cargar las %1$d horas anteriores\?</string>
-    <string name="msg_live_tv_next">¿Desea cargar las siguientes %1$d horas\?</string>
+    <string name="msg_live_tv_prev">¿Desea cargar las %1$d horas anteriores?</string>
+    <string name="msg_live_tv_next">¿Desea cargar las siguientes %1$d horas?\"</string>
     <string name="episode_missing_message_2">Este episodio no está presente en la biblioteca. La reproducción se detendrá.</string>
     <string name="episode_missing_message">Este episodio no está presente en la biblioteca. ¿Desea omitirlo\?</string>
     <string name="episode_missing">Episodio faltante</string>
@@ -445,7 +444,7 @@
     <string name="desc_audio_night_mode">Nivela el volumen de audio automáticamente</string>
     <string name="pref_audio_night_mode">Modo nocturno de audio (experimental)</string>
     <string name="app_notification_beta">Aplicación actualizada a %1$s
-\nGracias por participar en el programa beta de Jellyfin</string>
+\nGracias por participar en el programa beta de Jellyfin.</string>
     <string name="color_white">Blanco</string>
     <string name="color_black">Negro</string>
     <string name="color_darkgrey">Gris oscuro</string>
@@ -556,4 +555,38 @@
     <string name="continue_listening">Continuar escuchando</string>
     <string name="scheduled_in_next_24_hours">Programado en las próximas 24 horas</string>
     <string name="past_24_hours">Últimas 24 horas</string>
+    <string name="video_start_delay">Retraso en el inicio del video</string>
+    <string name="lbl_subtitle_background_color">Color del fondo de los subtítulos</string>
+    <string name="lbl_subtitle_text_stroke_color">Color de contorno de los subtítulos</string>
+    <string name="segment_action_nothing">No hacer nada</string>
+    <string name="segment_action_skip">Saltar</string>
+    <string name="segment_type_commercial">Publicidad</string>
+    <string name="segment_type_intro">Intros</string>
+    <string name="segment_type_preview">Adelantos</string>
+    <string name="segment_type_recap">Resumen</string>
+    <string name="pref_mediasegment_actions">Acciones de segmentos de medios</string>
+    <string name="segment_type_unknown">Segmentos desconocidos</string>
+    <string name="lbl_subtitle_text_color">Color del texto de los subtítulos</string>
+    <string name="prefer_exoplayer_ffmpeg">Preferir FFmpeg para reproducir audio</string>
+    <string name="prefer_exoplayer_ffmpeg_content">Usa FFmpeg para decodificar el audio, incluso si los códecs de la plataforma están disponibles.</string>
+    <string name="segment_type_outro">Créditos</string>
+    <string name="default_video_zoom">Modo de ampliación por defecto</string>
+    <string name="segment_action_ask_to_skip">Preguntar para saltar</string>
+    <string name="preference_enable_trickplay">Habilitar previsualizaciones en el reproductor</string>
+    <string name="skip_forward_length">Longitud de salto hacia adelante</string>
+    <string name="pref_troubleshooting">Resolución de problemas</string>
+    <string name="pref_report_device_profile_summary">Sube un documento de resolución de problemas al servidor de Jellyfin con información sobre las capacidades de reproducción</string>
+    <string name="pref_subtitles_background_opacity">Opacidad del fondo de los subtítulos</string>
+    <string name="pref_report_device_profile_title">Informar de las capacidades de reproducción al servidor</string>
+    <string name="pref_report_device_profile_success">Documento enviado como %1$s</string>
+    <string name="pref_report_device_profile_failure">No se ha podido enviar el documento. Es posible que tu servidor Jellyfin prohíba los registros del cliente.</string>
+    <string name="runtime_hours_minutes">%1$dh %2$dm</string>
+    <string name="runtime_minutes">%1$dm</string>
+    <string name="lbl_from_beginning">Reproducir desde el inicio</string>
+    <string name="pref_subtitles_bold">Texto en negrita</string>
+    <string name="lbl_exit">Salir</string>
+    <string name="lbl_still_watching_default">3 episodios o 90 minutos</string>
+    <string name="lbl_still_watching_short">2 episodios o 60 minutos</string>
+    <string name="lbl_still_watching_long">5 episodios o 150 minutos</string>
+    <string name="lbl_still_watching_very_long">8 episodios o 240 minutos</string>
 </resources>

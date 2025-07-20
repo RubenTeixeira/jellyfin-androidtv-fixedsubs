@@ -4,7 +4,9 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.data.model.DataRefreshService
 import org.jellyfin.androidtv.data.repository.ItemMutationRepository
@@ -19,6 +21,7 @@ import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.time.Instant
 import java.util.UUID
+import kotlin.time.Duration
 
 fun CustomPlaybackOverlayFragment.toggleFavorite() {
 	val header = mSelectedProgramView as? GuideChannelHeader
@@ -46,7 +49,9 @@ fun CustomPlaybackOverlayFragment.refreshSelectedProgram() {
 
 	lifecycleScope.launch {
 		runCatching {
-			val item by api.userLibraryApi.getItem(mSelectedProgram.id)
+			val item = withContext(Dispatchers.IO) {
+				api.userLibraryApi.getItem(mSelectedProgram.id).content
+			}
 			mSelectedProgram = item
 		}.onFailure { error ->
 			Timber.e(error, "Unable to get program details")
@@ -62,7 +67,9 @@ fun CustomPlaybackOverlayFragment.playChannel(id: UUID) {
 
 	lifecycleScope.launch {
 		runCatching {
-			api.userLibraryApi.getItem(id).content
+			withContext(Dispatchers.IO) {
+				api.userLibraryApi.getItem(id).content
+			}
 		}.fold(
 			onSuccess = { channel ->
 				playbackControllerContainer.playbackController?.setItems(listOf(channel))
@@ -87,7 +94,9 @@ fun CustomPlaybackOverlayFragment.cancelTimer(id: String) {
 
 	lifecycleScope.launch {
 		runCatching {
-			api.liveTvApi.cancelTimer(id)
+			withContext(Dispatchers.IO) {
+				api.liveTvApi.cancelTimer(id)
+			}
 		}.fold(
 			onSuccess = {
 				Toast.makeText(
@@ -117,7 +126,9 @@ fun CustomPlaybackOverlayFragment.cancelSeriesTimer(id: String) {
 
 	lifecycleScope.launch {
 		runCatching {
-			api.liveTvApi.cancelSeriesTimer(id)
+			withContext(Dispatchers.IO) {
+				api.liveTvApi.cancelSeriesTimer(id)
+			}
 		}.fold(
 			onSuccess = {
 				Toast.makeText(
@@ -147,12 +158,14 @@ fun CustomPlaybackOverlayFragment.recordProgram(program: BaseItemDto, isSeries: 
 
 	lifecycleScope.launch {
 		runCatching {
-			val defaultTimer by api.liveTvApi.getDefaultTimer()
+			withContext(Dispatchers.IO) {
+				val defaultTimer by api.liveTvApi.getDefaultTimer()
 
-			if (isSeries) {
-				api.liveTvApi.createSeriesTimer(defaultTimer.copy(programId = program.id.toString()))
-			} else {
-				api.liveTvApi.createTimer(defaultTimer.asTimerInfoDto().copy(programId = program.id.toString()))
+				if (isSeries) {
+					api.liveTvApi.createSeriesTimer(defaultTimer.copy(programId = program.id.toString()))
+				} else {
+					api.liveTvApi.createTimer(defaultTimer.asTimerInfoDto().copy(programId = program.id.toString()))
+				}
 			}
 		}.fold(
 			onSuccess = {
@@ -173,4 +186,8 @@ fun CustomPlaybackOverlayFragment.recordProgram(program: BaseItemDto, isSeries: 
 			}
 		)
 	}
+}
+
+fun CustomPlaybackOverlayFragment.askToSkip(position: Duration) {
+	binding.skipOverlay.targetPosition = position
 }

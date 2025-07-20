@@ -14,11 +14,11 @@ import org.jellyfin.androidtv.ui.navigation.Destinations;
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository;
 import org.jellyfin.androidtv.ui.playback.MediaManager;
 import org.jellyfin.androidtv.ui.playback.PlaybackLauncher;
-import org.jellyfin.androidtv.ui.playback.VideoQueueManager;
+import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter;
 import org.jellyfin.androidtv.util.PlaybackHelper;
 import org.jellyfin.androidtv.util.Utils;
+import org.jellyfin.androidtv.util.apiclient.Response;
 import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
-import org.jellyfin.apiclient.interaction.Response;
 import org.jellyfin.sdk.model.api.BaseItemDto;
 import org.jellyfin.sdk.model.api.BaseItemKind;
 import org.jellyfin.sdk.model.api.CollectionType;
@@ -35,7 +35,6 @@ public class ItemLauncher {
     private final Lazy<NavigationRepository> navigationRepository = KoinJavaComponent.<NavigationRepository>inject(NavigationRepository.class);
     private final Lazy<PreferencesRepository> preferencesRepository = KoinJavaComponent.<PreferencesRepository>inject(org.jellyfin.androidtv.preference.PreferencesRepository .class);
     private final Lazy<MediaManager> mediaManager = KoinJavaComponent.<MediaManager>inject(MediaManager.class);
-    private final Lazy<VideoQueueManager> videoQueueManager = KoinJavaComponent.<VideoQueueManager>inject(VideoQueueManager.class);
     private final Lazy<PlaybackLauncher> playbackLauncher = KoinJavaComponent.<PlaybackLauncher>inject(PlaybackLauncher.class);
     private final Lazy<PlaybackHelper> playbackHelper = KoinJavaComponent.<PlaybackHelper>inject(PlaybackHelper.class);
 
@@ -67,7 +66,7 @@ public class ItemLauncher {
         }
     }
 
-    public void launch(final BaseRowItem rowItem, ItemRowAdapter adapter, final Context context) {
+    public void launch(final BaseRowItem rowItem, MutableObjectAdapter<Object> adapter, final Context context) {
         switch (rowItem.getBaseRowType()) {
             case BaseItem:
                 BaseItemDto baseItem = rowItem.getBaseItem();
@@ -102,9 +101,9 @@ public class ItemLauncher {
                             navigationRepository.getValue().navigate(Destinations.INSTANCE.getNowPlaying());
                         } else if (mediaManager.getValue().hasAudioQueueItems() && rowItem instanceof AudioQueueBaseRowItem && adapter.indexOf(rowItem) < mediaManager.getValue().getCurrentAudioQueueSize()) {
                             Timber.d("playing audio queue item");
-                            mediaManager.getValue().playFrom(rowItem.getBaseItem());
-                        } else if (adapter.getQueryType() == QueryType.Search) {
-                            mediaManager.getValue().playNow(context, Arrays.asList(rowItem.getBaseItem()), 0, false);
+                            mediaManager.getValue().playFrom(((AudioQueueBaseRowItem) rowItem).getQueueEntry());
+                        } else if (adapter instanceof ItemRowAdapter && ((ItemRowAdapter)adapter).getQueryType() == QueryType.Search) {
+                            playbackLauncher.getValue().launch(context, Arrays.asList(rowItem.getBaseItem()));
                         } else {
                             Timber.d("playing audio item");
                             List<BaseItemDto> audioItemsAsList = new ArrayList<>();
@@ -113,7 +112,8 @@ public class ItemLauncher {
                                 if (item instanceof BaseRowItem && ((BaseRowItem) item).getBaseItem() != null)
                                     audioItemsAsList.add(((BaseRowItem) item).getBaseItem());
                             }
-                            mediaManager.getValue().playNow(context, audioItemsAsList, adapter.indexOf(rowItem), false);
+
+                            playbackLauncher.getValue().launch(context, audioItemsAsList, 0, false, adapter.indexOf(rowItem));
                         }
 
                         return;
@@ -126,12 +126,14 @@ public class ItemLauncher {
                         return;
 
                     case PHOTO:
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.pictureViewer(
-                                baseItem.getId(),
-                                false,
-                                adapter.getSortBy(),
-                                adapter.getSortOrder()
-                        ));
+                        if (adapter instanceof ItemRowAdapter) {
+                            navigationRepository.getValue().navigate(Destinations.INSTANCE.pictureViewer(
+                                    baseItem.getId(),
+                                    false,
+                                    ((ItemRowAdapter) adapter).getSortBy(),
+                                    ((ItemRowAdapter) adapter).getSortOrder()
+                            ));
+                        }
                         return;
 
                 }
@@ -154,13 +156,10 @@ public class ItemLauncher {
                             break;
                         case Play:
                             //Just play it directly
-                            final BaseItemKind itemType = baseItem.getType();
                             playbackHelper.getValue().getItemsToPlay(context, baseItem, baseItem.getType() == BaseItemKind.MOVIE, false, new Response<List<BaseItemDto>>() {
                                 @Override
                                 public void onResponse(List<BaseItemDto> response) {
-                                    videoQueueManager.getValue().setCurrentVideoQueue(response);
-                                    Destination destination = playbackLauncher.getValue().getPlaybackDestination(itemType, 0);
-                                    navigationRepository.getValue().navigate(destination);
+                                    playbackLauncher.getValue().launch(context, response);
                                 }
                             });
                             break;
@@ -177,12 +176,10 @@ public class ItemLauncher {
                 ItemLauncherHelper.getItem(rowItem.getItemId(), new Response<BaseItemDto>() {
                     @Override
                     public void onResponse(BaseItemDto response) {
-                        List<BaseItemDto> items = new ArrayList<>();
+                        List<BaseItemDto> items = new ArrayList<>(1);
                         items.add(response);
-                        videoQueueManager.getValue().setCurrentVideoQueue(items);
                         Long start = chapter.getStartPositionTicks() / 10000;
-                        Destination destination = playbackLauncher.getValue().getPlaybackDestination(response.getType(), start.intValue());
-                        navigationRepository.getValue().navigate(destination);
+                        playbackLauncher.getValue().launch(context, items, start.intValue());
                     }
                 });
 
@@ -200,11 +197,9 @@ public class ItemLauncher {
                         ItemLauncherHelper.getItem(program.getChannelId(), new Response<BaseItemDto>() {
                             @Override
                             public void onResponse(BaseItemDto response) {
-                                List<BaseItemDto> items = new ArrayList<>();
+                                List<BaseItemDto> items = new ArrayList<>(1);
                                 items.add(response);
-                                videoQueueManager.getValue().setCurrentVideoQueue(items);
-                                Destination destination = playbackLauncher.getValue().getPlaybackDestination(response.getType(), 0);
-                                navigationRepository.getValue().navigate(destination);
+                                playbackLauncher.getValue().launch(context, items);
 
                             }
                         });
@@ -220,9 +215,7 @@ public class ItemLauncher {
                         playbackHelper.getValue().getItemsToPlay(context, response, false, false, new Response<List<BaseItemDto>>() {
                             @Override
                             public void onResponse(List<BaseItemDto> response) {
-                                videoQueueManager.getValue().setCurrentVideoQueue(response);
-                                Destination destination = playbackLauncher.getValue().getPlaybackDestination(channel.getType(), 0);
-                                navigationRepository.getValue().navigate(destination);
+                                playbackLauncher.getValue().launch(context, response);
                             }
                         });
                     }
@@ -240,11 +233,9 @@ public class ItemLauncher {
                         ItemLauncherHelper.getItem(rowItem.getBaseItem().getId(), new Response<BaseItemDto>() {
                             @Override
                             public void onResponse(BaseItemDto response) {
-                                List<BaseItemDto> items = new ArrayList<>();
+                                List<BaseItemDto> items = new ArrayList<>(1);
                                 items.add(response);
-                                videoQueueManager.getValue().setCurrentVideoQueue(items);
-                                Destination destination = playbackLauncher.getValue().getPlaybackDestination(rowItem.getBaseItem().getType(), 0);
-                                navigationRepository.getValue().navigate(destination);
+                                playbackLauncher.getValue().launch(context, items);
                             }
                         });
                         break;

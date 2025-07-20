@@ -22,7 +22,12 @@ internal class RandomOrderIndexProvider : OrderIndexProvider {
 		}
 	}
 
+	override fun notifyRemoved(index: Int) {
+		nextIndices.removeAll { it == index }
+		nextIndices.replaceAll { if (it > index) it - 1 else it }
+	}
+
 	override fun useNextIndex() {
-		nextIndices.removeFirst()
+		nextIndices.removeAt(0)
 	}
 }

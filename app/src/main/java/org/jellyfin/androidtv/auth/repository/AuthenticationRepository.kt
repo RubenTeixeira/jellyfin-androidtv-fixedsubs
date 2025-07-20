@@ -1,9 +1,11 @@
 package org.jellyfin.androidtv.auth.repository
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import org.jellyfin.androidtv.auth.model.ApiClientErrorLoginState
 import org.jellyfin.androidtv.auth.model.AuthenticateMethod
 import org.jellyfin.androidtv.auth.model.AuthenticatedState
@@ -22,6 +24,7 @@ import org.jellyfin.androidtv.auth.model.User
 import org.jellyfin.androidtv.auth.store.AuthenticationPreferences
 import org.jellyfin.androidtv.auth.store.AuthenticationStore
 import org.jellyfin.androidtv.util.ImageHelper
+import org.jellyfin.androidtv.util.apiclient.primaryImage
 import org.jellyfin.androidtv.util.sdk.forUser
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
@@ -55,9 +58,6 @@ class AuthenticationRepositoryImpl(
 	private val defaultDeviceInfo: DeviceInfo,
 ) : AuthenticationRepository {
 	override fun authenticate(server: Server, method: AuthenticateMethod): Flow<LoginState> {
-		// Check server version first
-		if (!server.versionSupported) return flowOf(ServerVersionNotSupported(server))
-
 		return when (method) {
 			is AutomaticAuthenticateMethod -> authenticateAutomatic(server, method.user)
 			is CredentialAuthenticateMethod -> authenticateCredential(server, method.username, method.password)
@@ -94,7 +94,7 @@ class AuthenticationRepositoryImpl(
 		}
 
 		emitAll(authenticateAuthenticationResult(server, result))
-	}
+	}.flowOn(Dispatchers.IO)
 
 	private fun authenticateQuickConnect(server: Server, secret: String) = flow {
 		val api = jellyfin.createApi(server.address, deviceInfo = defaultDeviceInfo)
@@ -112,7 +112,7 @@ class AuthenticationRepositoryImpl(
 		}
 
 		emitAll(authenticateAuthenticationResult(server, result))
-	}
+	}.flowOn(Dispatchers.IO)
 
 	private fun authenticateAuthenticationResult(server: Server, result: AuthenticationResult) = flow {
 		val accessToken = result.accessToken ?: return@flow emit(RequireSignInState)
@@ -122,7 +122,7 @@ class AuthenticationRepositoryImpl(
 			serverId = server.id,
 			name = userInfo.name!!,
 			accessToken = result.accessToken,
-			imageTag = userInfo.primaryImageTag,
+			imageTag = userInfo.primaryImage?.tag,
 			lastUsed = Instant.now().toEpochMilli(),
 		)
 
@@ -132,16 +132,18 @@ class AuthenticationRepositoryImpl(
 			emit(AuthenticatedState)
 		} else {
 			Timber.w("Failed to set active session after authenticating")
-			emit(RequireSignInState)
+			if (!server.versionSupported) emit(ServerVersionNotSupported(server))
+			else emit(RequireSignInState)
 		}
-	}
+	}.flowOn(Dispatchers.IO)
 
 	private fun authenticateToken(server: Server, user: User) = flow {
 		emit(AuthenticatingState)
 
 		val success = setActiveSession(user, server)
 		if (!success) {
-			emit(RequireSignInState)
+			if (!server.versionSupported) emit(ServerVersionNotSupported(server))
+			else emit(RequireSignInState)
 		} else try {
 			// Update user info
 			val userInfo by userApiClient.userApi.getCurrentUser()
@@ -155,7 +157,7 @@ class AuthenticationRepositoryImpl(
 			Timber.e(err, "Unable to get current user data")
 			emit(ApiClientErrorLoginState(err))
 		}
-	}
+	}.flowOn(Dispatchers.IO)
 
 	private suspend fun authenticateFinish(server: Server, userInfo: UserDto, accessToken: String) {
 		val currentUser = authenticationStore.getUser(server.id, userInfo.id)
@@ -163,11 +165,11 @@ class AuthenticationRepositoryImpl(
 		val updatedUser = currentUser?.copy(
 			name = userInfo.name!!,
 			lastUsed = Instant.now().toEpochMilli(),
-			imageTag = userInfo.primaryImageTag,
+			imageTag = userInfo.primaryImage?.tag,
 			accessToken = accessToken,
 		) ?: AuthenticationStoreUser(
 			name = userInfo.name!!,
-			imageTag = userInfo.primaryImageTag,
+			imageTag = userInfo.primaryImage?.tag,
 			accessToken = accessToken,
 		)
 		authenticationStore.putUser(server.id, userInfo.id, updatedUser)

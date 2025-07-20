@@ -1,7 +1,5 @@
 package org.jellyfin.androidtv.ui.navigation
 
-import androidx.core.os.bundleOf
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jellyfin.androidtv.constant.Extras
 import org.jellyfin.androidtv.ui.browsing.BrowseGridFragment
@@ -11,25 +9,19 @@ import org.jellyfin.androidtv.ui.browsing.BrowseViewFragment
 import org.jellyfin.androidtv.ui.browsing.ByGenreFragment
 import org.jellyfin.androidtv.ui.browsing.ByLetterFragment
 import org.jellyfin.androidtv.ui.browsing.CollectionFragment
-import org.jellyfin.androidtv.ui.browsing.DisplayPreferencesScreen
 import org.jellyfin.androidtv.ui.browsing.GenericFolderFragment
 import org.jellyfin.androidtv.ui.browsing.SuggestedMoviesFragment
 import org.jellyfin.androidtv.ui.home.HomeFragment
 import org.jellyfin.androidtv.ui.itemdetail.FullDetailsFragment
 import org.jellyfin.androidtv.ui.itemdetail.ItemListFragment
 import org.jellyfin.androidtv.ui.itemdetail.MusicFavoritesListFragment
-import org.jellyfin.androidtv.ui.livetv.GuideFiltersScreen
-import org.jellyfin.androidtv.ui.livetv.GuideOptionsScreen
 import org.jellyfin.androidtv.ui.livetv.LiveTvGuideFragment
 import org.jellyfin.androidtv.ui.picture.PictureViewerFragment
 import org.jellyfin.androidtv.ui.playback.AudioNowPlayingFragment
 import org.jellyfin.androidtv.ui.playback.CustomPlaybackOverlayFragment
-import org.jellyfin.androidtv.ui.playback.ExternalPlayerActivity
 import org.jellyfin.androidtv.ui.playback.nextup.NextUpFragment
 import org.jellyfin.androidtv.ui.playback.rewrite.PlaybackRewriteFragment
-import org.jellyfin.androidtv.ui.preference.PreferencesActivity
-import org.jellyfin.androidtv.ui.preference.dsl.OptionsFragment
-import org.jellyfin.androidtv.ui.preference.screen.UserPreferencesScreen
+import org.jellyfin.androidtv.ui.playback.stillwatching.StillWatchingFragment
 import org.jellyfin.androidtv.ui.search.SearchFragment
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.ItemSortBy
@@ -39,20 +31,11 @@ import java.util.UUID
 
 @Suppress("TooManyFunctions")
 object Destinations {
-	// Helpers
-	private inline fun <reified T : OptionsFragment> preferenceDestination(
-		vararg screenArguments: Pair<String, Any?>
-	) = activityDestination<PreferencesActivity>(
-		PreferencesActivity.EXTRA_SCREEN to T::class.qualifiedName,
-		PreferencesActivity.EXTRA_SCREEN_ARGS to bundleOf(*screenArguments),
-	)
-
 	// General
 	val home = fragmentDestination<HomeFragment>()
 	fun search(query: String? = null) = fragmentDestination<SearchFragment>(
 		SearchFragment.EXTRA_QUERY to query,
 	)
-	val userPreferences = preferenceDestination<UserPreferencesScreen>()
 
 	// Browsing
 	// TODO only pass item id instead of complete JSON to browsing destinations
@@ -102,12 +85,6 @@ object Destinations {
 			Extras.Folder to Json.Default.encodeToString(item),
 		)
 
-	fun displayPreferences(displayPreferencesId: String, allowViewSelection: Boolean) =
-		preferenceDestination<DisplayPreferencesScreen>(
-			DisplayPreferencesScreen.ARG_PREFERENCES_ID to displayPreferencesId,
-			DisplayPreferencesScreen.ARG_ALLOW_VIEW_SELECTION to allowViewSelection,
-		)
-
 	// Item details
 	fun itemDetails(item: UUID) = fragmentDestination<FullDetailsFragment>(
 		"ItemId" to item.toString(),
@@ -141,8 +118,6 @@ object Destinations {
 	val liveTvSchedule = fragmentDestination<BrowseScheduleFragment>()
 	val liveTvRecordings = fragmentDestination<BrowseRecordingsFragment>()
 	val liveTvSeriesRecordings = fragmentDestination<BrowseViewFragment>(Extras.IsLiveTvSeriesRecordings to true)
-	val liveTvGuideFilterPreferences = preferenceDestination<GuideFiltersScreen>()
-	val liveTvGuideOptionPreferences = preferenceDestination<GuideOptionsScreen>()
 
 	// Playback
 	val nowPlaying = fragmentDestination<AudioNowPlayingFragment>()
@@ -155,10 +130,6 @@ object Destinations {
 			PictureViewerFragment.ARGUMENT_AUTO_PLAY to autoPlay,
 		)
 
-	fun externalPlayer(position: Int?) = activityDestination<ExternalPlayerActivity>(
-		"Position" to (position ?: 0)
-	)
-
 	fun videoPlayer(position: Int?) = fragmentDestination<CustomPlaybackOverlayFragment>(
 		"Position" to (position ?: 0)
 	)
@@ -168,6 +139,10 @@ object Destinations {
 	)
 
 	fun nextUp(item: UUID) = fragmentDestination<NextUpFragment>(
+		NextUpFragment.ARGUMENT_ITEM_ID to item.toString()
+	)
+
+	fun stillWatching(item: UUID) = fragmentDestination<StillWatchingFragment>(
 		NextUpFragment.ARGUMENT_ITEM_ID to item.toString()
 	)
 }

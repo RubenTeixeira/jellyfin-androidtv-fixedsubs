@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="seconds">
+        <item quantity="one">%1$s segundo</item>
+        <item quantity="many">%1$s segundos</item>
+        <item quantity="other">%1$s segundos</item>
+    </plurals>
+    <string name="msg_live_tv_prev">Carregar as %1$d horas anteriores?</string>
+    <string name="indicator_subtitles_hearing_impaired">SDH</string>
+    <string name="fast_forward">Avançar</string>
+    <string name="rewind">Retroceder</string>
+    <string name="server_unsupported_notification">Este servidor utiliza a versão %1$s do Jellyfin, que não é suportada. Atualiza para o Jellyfin %2$s ou mais recente para continuares a utilizar a aplicação.</string>
+    <string name="image_type_poster">Cartaz</string>
+    <string name="pref_customization">Personalização</string>
+    <string name="preference_enable_libass">Ativar a renderização de legendas do cliente Advanced SubStation Alpha</string>
+    <string name="msg_live_tv_next">Carregar as próximas %1$d horas?</string>
+    <string name="pref_subtitles_bold">Negrito</string>
+    <string name="server_issue_unable_to_connect">Não é possível ligar</string>
+    <string name="preference_enable_pgs">Reproduzir diretamente legendas PGS</string>
+    <string name="pref_app_theme">Tema da aplicação</string>
+    <string name="lbl_sign_out">Terminar sessão</string>
+    <string name="lbl_exit">Sair</string>
+    <string name="pref_still_watching_behavior_title">Mostrar aviso de inatividade</string>
+    <string name="lbl_still_watching_default">3 episódios ou 90 minutos</string>
+    <string name="lbl_still_watching_short">2 episódios ou 60 minutos</string>
+    <string name="lbl_still_watching_long">5 episódios ou 150 minutos</string>
+    <string name="lbl_still_watching_very_long">8 episódios ou 240 minutos</string>
+    <string name="still_watching_label">Ainda estás a ver?</string>
+    <string name="chapters">Capítulos</string>
+    <string name="lbl_chapters">Capítulos</string>
+</resources>

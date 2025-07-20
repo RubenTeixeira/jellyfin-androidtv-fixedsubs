@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.ViewGroup
 import androidx.annotation.OptIn
 import androidx.core.content.getSystemService
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -14,7 +15,6 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -23,6 +23,10 @@ import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.TsExtractor
 import androidx.media3.ui.SubtitleView
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.kt.withAssMkvSupport
+import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
+import io.github.peerless2012.ass.media.type.AssRenderType
 import org.jellyfin.playback.core.backend.BasePlayerBackend
 import org.jellyfin.playback.core.mediastream.MediaStream
 import org.jellyfin.playback.core.mediastream.PlayableMediaStream
@@ -54,7 +58,35 @@ class ExoPlayerBackend(
 	private var subtitleView: SubtitleView? = null
 	private var audioPipeline = ExoPlayerAudioPipeline()
 
+	private val assHandler by lazy {
+		AssHandler(AssRenderType.LEGACY)
+	}
+
 	private val exoPlayer by lazy {
+		val dataSourceFactory = DefaultDataSource.Factory(
+			context,
+			exoPlayerOptions.baseDataSourceFactory,
+		)
+		val extractorsFactory = DefaultExtractorsFactory().apply {
+			val isLowRamDevice = context.getSystemService<ActivityManager>()?.isLowRamDevice == true
+			setTsExtractorTimestampSearchBytes(
+				when (isLowRamDevice) {
+					true -> TS_SEARCH_BYTES_LM
+					false -> TS_SEARCH_BYTES_HM
+				}
+			)
+			setConstantBitrateSeekingEnabled(true)
+			setConstantBitrateSeekingAlwaysEnabled(true)
+		}
+
+		val mediaSourceFactory = if (exoPlayerOptions.enableLibass) {
+			val assSubtitleParserFactory = AssSubtitleParserFactory(assHandler)
+			val assExtractorsFactory = extractorsFactory.withAssMkvSupport(assSubtitleParserFactory, assHandler)
+			DefaultMediaSourceFactory(dataSourceFactory, assExtractorsFactory).apply {
+				setSubtitleParserFactory(assSubtitleParserFactory)
+			}
+		} else DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
+
 		ExoPlayer.Builder(context)
 			.setRenderersFactory(DefaultRenderersFactory(context).apply {
 				setEnableDecoderFallback(true)
@@ -72,43 +104,24 @@ class ExoPlayerBackend(
 							setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
 						}.build()
 					)
+					setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true)
 				})
 			})
-			.setMediaSourceFactory(DefaultMediaSourceFactory(
-				DefaultDataSource.Factory(
-					context,
-					DefaultHttpDataSource.Factory().apply {
-						exoPlayerOptions.httpConnectTimeout
-							?.inWholeMilliseconds
-							?.toInt()
-							?.let(::setConnectTimeoutMs)
-
-						exoPlayerOptions.httpReadTimeout
-							?.inWholeMilliseconds
-							?.toInt()
-							?.let(::setReadTimeoutMs)
-					}
-				),
-				DefaultExtractorsFactory().apply {
-					val isLowRamDevice = context.getSystemService<ActivityManager>()?.isLowRamDevice == true
-					setTsExtractorTimestampSearchBytes(
-						when (isLowRamDevice) {
-							true -> TS_SEARCH_BYTES_LM
-							false -> TS_SEARCH_BYTES_HM
-						}
-					)
-					setConstantBitrateSeekingEnabled(true)
-					setConstantBitrateSeekingAlwaysEnabled(true)
-				}
-			))
+			.setMediaSourceFactory(mediaSourceFactory)
+			.setAudioAttributes(AudioAttributes.Builder().apply {
+				setUsage(C.USAGE_MEDIA)
+			}.build(), true)
 			.setPauseAtEndOfMediaItems(true)
 			.build()
 			.also { player ->
 				player.addListener(PlayerListener())
-				audioPipeline.setAudioSessionId(player.audioSessionId)
 
 				if (exoPlayerOptions.enableDebugLogging) {
 					player.addAnalyticsListener(EventLogger())
+				}
+
+				if (exoPlayerOptions.enableLibass) {
+					assHandler.init(player)
 				}
 			}
 	}
@@ -209,6 +222,8 @@ class ExoPlayerBackend(
 	}
 
 	override fun play() {
+		// If the item has ended, revert first so the item will start over again
+		if (exoPlayer.playbackState == Player.STATE_ENDED) exoPlayer.seekTo(0)
 		exoPlayer.play()
 	}
 

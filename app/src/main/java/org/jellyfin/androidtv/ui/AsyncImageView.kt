@@ -9,10 +9,15 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.doOnAttach
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import coil.ImageLoader
-import coil.request.ImageRequest
-import coil.transform.CircleCropTransformation
+import coil3.ImageLoader
+import coil3.asImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.request.target
+import coil3.request.transformations
+import coil3.transform.CircleCropTransformation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.R
@@ -35,6 +40,7 @@ class AsyncImageView @JvmOverloads constructor(
 	private val lifeCycleOwner get() = findViewTreeLifecycleOwner()
 	private val styledAttributes = context.obtainStyledAttributes(attrs, R.styleable.AsyncImageView, defStyleAttr, 0)
 	private val imageLoader by inject<ImageLoader>()
+	private var loadJob: Job? = null
 
 	/**
 	 * The duration of the crossfade when changing switching the images of the url, blurhash and
@@ -60,7 +66,10 @@ class AsyncImageView @JvmOverloads constructor(
 		aspectRatio: Double = 1.0,
 		blurHashResolution: Int = 32,
 	) = doOnAttach {
-		lifeCycleOwner?.lifecycleScope?.launch {
+		// Cancel the previous load if still running
+		loadJob?.cancel()
+
+		loadJob = lifeCycleOwner?.lifecycleScope?.launch(Dispatchers.IO) {
 			var placeholderOrBlurHash = placeholder
 
 			// Only show blurhash if an image is going to be loaded from the network
@@ -74,25 +83,27 @@ class AsyncImageView @JvmOverloads constructor(
 			}
 
 			// Start loading image or placeholder
-			if (url == null) {
-				imageLoader.enqueue(ImageRequest.Builder(context).apply {
+			val request = if (url == null) {
+				ImageRequest.Builder(context).apply {
 					target(this@AsyncImageView)
 					data(placeholder)
 					if (circleCrop) transformations(CircleCropTransformation())
-				}.build())
+				}.build()
 			} else {
-				imageLoader.enqueue(ImageRequest.Builder(context).apply {
+				ImageRequest.Builder(context).apply {
 					val crossFadeDurationMs = crossFadeDuration.inWholeMilliseconds.toInt()
 					if (crossFadeDurationMs > 0) crossfade(crossFadeDurationMs)
 					else crossfade(false)
 
 					target(this@AsyncImageView)
 					data(url)
-					placeholder(placeholderOrBlurHash)
+					placeholder(placeholderOrBlurHash?.asImage())
 					if (circleCrop) transformations(CircleCropTransformation())
-					error(placeholder)
-				}.build())
+					error(placeholder?.asImage())
+				}.build()
 			}
+
+			imageLoader.enqueue(request).job.await()
 		}
 	}
 }

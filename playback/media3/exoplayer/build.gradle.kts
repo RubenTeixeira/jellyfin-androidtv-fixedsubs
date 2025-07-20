@@ -34,9 +34,11 @@ dependencies {
 
 	// media3
 	implementation(libs.androidx.media3.exoplayer)
+	implementation(libs.androidx.media3.datasource.okhttp)
 	implementation(libs.androidx.media3.exoplayer.hls)
 	implementation(libs.jellyfin.androidx.media3.ffmpeg.decoder)
 	implementation(libs.androidx.media3.ui)
+	implementation(libs.libass.media3)
 
 	// Logging
 	implementation(libs.timber)

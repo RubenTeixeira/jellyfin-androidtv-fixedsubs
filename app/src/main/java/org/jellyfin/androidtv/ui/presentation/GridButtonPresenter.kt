@@ -20,9 +20,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.leanback.widget.Presenter
-import androidx.tv.material3.Text
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.GridButton
+import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.itemhandling.GridButtonBaseRowItem
 
 class GridButtonPresenter @JvmOverloads constructor(
@@ -80,7 +80,7 @@ class GridButtonPresenter @JvmOverloads constructor(
 	override fun onCreateViewHolder(parent: ViewGroup): ViewHolder =
 		ViewHolder(ComposeView(parent.context))
 
-	override fun onBindViewHolder(viewHolder: Presenter.ViewHolder?, item: Any?) {
+	override fun onBindViewHolder(viewHolder: Presenter.ViewHolder, item: Any?) {
 		if (viewHolder !is ViewHolder) return
 
 		when (item) {
@@ -89,6 +89,6 @@ class GridButtonPresenter @JvmOverloads constructor(
 		}
 	}
 
-	override fun onUnbindViewHolder(viewHolder: Presenter.ViewHolder?) = Unit
-	override fun onViewAttachedToWindow(viewHolder: Presenter.ViewHolder?) = Unit
+	override fun onUnbindViewHolder(viewHolder: Presenter.ViewHolder) = Unit
+	override fun onViewAttachedToWindow(viewHolder: Presenter.ViewHolder) = Unit
 }

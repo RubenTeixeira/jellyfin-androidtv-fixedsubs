@@ -7,8 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import androidx.core.content.edit
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toUri
 import androidx.tvprovider.media.tv.Channel
 import androidx.tvprovider.media.tv.ChannelLogoUtils
 import androidx.tvprovider.media.tv.PreviewProgram
@@ -21,37 +23,37 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.R
+import org.jellyfin.androidtv.data.repository.ItemRepository
 import org.jellyfin.androidtv.data.repository.UserViewsRepository
 import org.jellyfin.androidtv.integration.provider.ImageProvider
 import org.jellyfin.androidtv.preference.UserPreferences
 import org.jellyfin.androidtv.ui.startup.StartupActivity
 import org.jellyfin.androidtv.util.ImageHelper
+import org.jellyfin.androidtv.util.apiclient.getUrl
+import org.jellyfin.androidtv.util.apiclient.itemImages
+import org.jellyfin.androidtv.util.apiclient.parentImages
 import org.jellyfin.androidtv.util.dp
 import org.jellyfin.androidtv.util.sdk.isUsable
 import org.jellyfin.androidtv.util.stripHtml
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.ApiClientException
 import org.jellyfin.sdk.api.client.exception.TimeoutException
-import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.api.client.extensions.userViewsApi
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
-import org.jellyfin.sdk.model.api.ImageFormat
 import org.jellyfin.sdk.model.api.ImageType
-import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.extensions.ticks
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import timber.log.Timber
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration
-
 
 /**
  * Manages channels on the android tv home screen.
@@ -100,39 +102,39 @@ class LeanbackChannelWorker(
 			// Get channel URIs
 			val latestMediaChannel = getChannelUri(
 				"latest_media", Channel.Builder()
-				.setType(TvContractCompat.Channels.TYPE_PREVIEW)
-				.setDisplayName(context.getString(R.string.home_section_latest_media))
-				.setAppLinkIntent(Intent(context, StartupActivity::class.java))
-				.build(),
+					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
+					.setDisplayName(context.getString(R.string.home_section_latest_media))
+					.setAppLinkIntent(Intent(context, StartupActivity::class.java))
+					.build(),
 				default = true
 			)
 			val myMediaChannel = getChannelUri(
 				"my_media", Channel.Builder()
-				.setType(TvContractCompat.Channels.TYPE_PREVIEW)
-				.setDisplayName(context.getString(R.string.lbl_my_media))
-				.setAppLinkIntent(Intent(context, StartupActivity::class.java))
-				.build()
+					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
+					.setDisplayName(context.getString(R.string.lbl_my_media))
+					.setAppLinkIntent(Intent(context, StartupActivity::class.java))
+					.build()
 			)
 			val nextUpChannel = getChannelUri(
 				"next_up", Channel.Builder()
-				.setType(TvContractCompat.Channels.TYPE_PREVIEW)
-				.setDisplayName(context.getString(R.string.lbl_next_up))
-				.setAppLinkIntent(Intent(context, StartupActivity::class.java))
-				.build()
+					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
+					.setDisplayName(context.getString(R.string.lbl_next_up))
+					.setAppLinkIntent(Intent(context, StartupActivity::class.java))
+					.build()
 			)
 			val latestMoviesChannel = getChannelUri(
 				"latest_movies", Channel.Builder()
-				.setType(TvContractCompat.Channels.TYPE_PREVIEW)
-				.setDisplayName(context.getString(R.string.lbl_movies))
-				.setAppLinkIntent(Intent(context, StartupActivity::class.java))
-				.build()
+					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
+					.setDisplayName(context.getString(R.string.lbl_movies))
+					.setAppLinkIntent(Intent(context, StartupActivity::class.java))
+					.build()
 			)
 			val latestEpisodesChannel = getChannelUri(
 				"latest_episodes", Channel.Builder()
-				.setType(TvContractCompat.Channels.TYPE_PREVIEW)
-				.setDisplayName(context.getString(R.string.lbl_new_episodes))
-				.setAppLinkIntent(Intent(context, StartupActivity::class.java))
-				.build()
+					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
+					.setDisplayName(context.getString(R.string.lbl_new_episodes))
+					.setAppLinkIntent(Intent(context, StartupActivity::class.java))
+					.build()
 			)
 			val preferParentThumb = userPreferences[UserPreferences.seriesThumbnailsEnabled]
 
@@ -144,18 +146,21 @@ class LeanbackChannelWorker(
 				latestEpisodes to latestEpisodesChannel,
 				myMedia to myMediaChannel,
 			).forEach { (items, channel) ->
-				Timber.d("Updating channel %s", channel)
-				items.map { item ->
-					createPreviewProgram(
-						channel,
-						item,
-						preferParentThumb
-					)
-				}.let {
-					context.contentResolver.bulkInsert(
-						TvContractCompat.PreviewPrograms.CONTENT_URI,
-						it.toTypedArray()
-					)
+				if (channel == null) {
+					Timber.e("Skipping channel because it was not available")
+				} else {
+					items.map { item ->
+						createPreviewProgram(
+							channel,
+							item,
+							preferParentThumb
+						)
+					}.let {
+						context.contentResolver.bulkInsert(
+							TvContractCompat.PreviewPrograms.CONTENT_URI,
+							it.toTypedArray()
+						)
+					}
 				}
 			}
 			updateWatchNext(resumeItems + nextUpItems)
@@ -178,35 +183,46 @@ class LeanbackChannelWorker(
 	 * update or create the channel. The [name] parameter is used to store the id and should be
 	 * unique.
 	 */
-	private fun getChannelUri(name: String, settings: Channel, default: Boolean = false): Uri {
+	private fun getChannelUri(name: String, settings: Channel, default: Boolean = false): Uri? {
 		val store = context.getSharedPreferences("leanback_channels", Context.MODE_PRIVATE)
+		var uri: Uri? = null
 
-		val uri = if (store.contains(name)) {
-			// Retrieve uri and update content resolver
-			Uri.parse(store.getString(name, null)).also { uri ->
-				context.contentResolver.update(uri, settings.toContentValues(), null, null)
-			}
-		} else {
-			// Create new channel and save uri
-			context.contentResolver.insert(
-				TvContractCompat.Channels.CONTENT_URI,
-				settings.toContentValues()
-			)!!.also { uri ->
-				store.edit().putString(name, uri.toString()).apply()
-				if (default) {
-					// Set as default row to display (we can request one row to automatically be added to the home screen)
-					TvContractCompat.requestChannelBrowsable(context, ContentUris.parseId(uri))
-				}
+		// Try and re-use our existing channel definition
+		if (store.contains(name)) {
+			uri = store.getString(name, null)?.toUri()
+
+			if (uri != null) {
+				val result = context.contentResolver.update(uri, settings.toContentValues(), null, null)
+				// If we did not affect exactly 1 row there might be something wrong, so recreate it
+				if (result != 1) uri = null
 			}
 		}
 
-		// Update logo
-		ResourcesCompat.getDrawable(context.resources, R.mipmap.app_icon, context.theme)?.let {
-			ChannelLogoUtils.storeChannelLogo(
-				context,
-				ContentUris.parseId(uri),
-				it.toBitmap(80.dp(context), 80.dp(context))
+		if (uri == null) {
+			// Create new channel
+			uri = context.contentResolver.insert(
+				TvContractCompat.Channels.CONTENT_URI,
+				settings.toContentValues()
 			)
+
+			// Set as default row to display (we can request one row to automatically be added to the home screen)
+			if (uri != null && default) {
+				TvContractCompat.requestChannelBrowsable(context, ContentUris.parseId(uri))
+			}
+
+			// Save uri to shared preferences
+			store.edit { putString(name, uri?.toString()) }
+		}
+
+		// Update logo
+		if (uri != null) {
+			ResourcesCompat.getDrawable(context.resources, R.mipmap.app_icon, context.theme)?.let {
+				ChannelLogoUtils.storeChannelLogo(
+					context,
+					ContentUris.parseId(uri),
+					it.toBitmap(80.dp(context), 80.dp(context))
+				)
+			}
 		}
 
 		return uri
@@ -221,7 +237,6 @@ class LeanbackChannelWorker(
 
 		// Add new items
 		return response.items
-			.orEmpty()
 			.filter { userViewsRepository.isSupported(it.collectionType) }
 	}
 
@@ -232,35 +247,12 @@ class LeanbackChannelWorker(
 	private fun BaseItemDto.getPosterArtImageUrl(
 		preferParentThumb: Boolean
 	): Uri = when {
-		type == BaseItemKind.MOVIE || type == BaseItemKind.SERIES -> api.imageApi.getItemImageUrl(
-			itemId = id,
-			imageType = ImageType.PRIMARY,
-			format = ImageFormat.WEBP,
-			width = 106.dp(context),
-			height = 153.dp(context),
-			tag = imageTags?.get(ImageType.PRIMARY),
-		)
-
-		(preferParentThumb || imageTags?.contains(ImageType.PRIMARY) != true) && parentThumbItemId != null -> api.imageApi.getItemImageUrl(
-			itemId = parentThumbItemId!!,
-			imageType = ImageType.THUMB,
-			format = ImageFormat.WEBP,
-			width = 272.dp(context),
-			height = 153.dp(context),
-			tag = imageTags?.get(ImageType.THUMB),
-		)
-
-		imageTags?.containsKey(ImageType.PRIMARY) == true -> api.imageApi.getItemImageUrl(
-			itemId = id,
-			imageType = ImageType.PRIMARY,
-			format = ImageFormat.WEBP,
-			width = 272.dp(context),
-			height = 153.dp(context),
-			tag = imageTags?.get(ImageType.PRIMARY),
-		)
-
-		else -> imageHelper.getResourceUrl(context, R.drawable.tile_land_tv)
-	}.let(ImageProvider::getImageUri)
+		type == BaseItemKind.MOVIE || type == BaseItemKind.SERIES -> itemImages[ImageType.PRIMARY]
+		(preferParentThumb || !itemImages.contains(ImageType.PRIMARY)) && parentImages.contains(ImageType.THUMB) -> parentImages[ImageType.THUMB]
+		else -> itemImages[ImageType.PRIMARY]
+	}.let { image ->
+		ImageProvider.getImageUri(image?.getUrl(api) ?: imageHelper.getResourceUrl(context, R.drawable.tile_land_tv))
+	}
 
 	/**
 	 * Gets the resume and next up episodes. The returned pair contains two lists:
@@ -271,13 +263,13 @@ class LeanbackChannelWorker(
 		withContext(Dispatchers.IO) {
 			val resume = async {
 				api.itemsApi.getResumeItems(
-					fields = listOf(ItemFields.DATE_CREATED),
+					fields = ItemRepository.itemFields,
 					imageTypeLimit = 1,
 					limit = 10,
 					mediaTypes = listOf(MediaType.VIDEO),
 					includeItemTypes = listOf(BaseItemKind.EPISODE, BaseItemKind.MOVIE),
 					excludeActiveSessions = true,
-				).content.items.orEmpty()
+				).content.items
 			}
 
 			val nextUp = async {
@@ -285,8 +277,8 @@ class LeanbackChannelWorker(
 					imageTypeLimit = 1,
 					limit = 10,
 					enableResumable = false,
-					fields = listOf(ItemFields.DATE_CREATED),
-				).content.items.orEmpty()
+					fields = ItemRepository.itemFields,
+				).content.items
 			}
 
 			// Concat
@@ -297,9 +289,7 @@ class LeanbackChannelWorker(
 		withContext(Dispatchers.IO) {
 			val latestEpisodes = async {
 				api.userLibraryApi.getLatestMedia(
-					fields = listOf(
-						ItemFields.OVERVIEW,
-					),
+					fields = ItemRepository.itemFields,
 					limit = 50,
 					includeItemTypes = listOf(BaseItemKind.EPISODE),
 					isPlayed = false
@@ -308,9 +298,7 @@ class LeanbackChannelWorker(
 
 			val latestMovies = async {
 				api.userLibraryApi.getLatestMedia(
-					fields = listOf(
-						ItemFields.OVERVIEW,
-					),
+					fields = ItemRepository.itemFields,
 					limit = 50,
 					includeItemTypes = listOf(BaseItemKind.MOVIE),
 					isPlayed = false
@@ -319,9 +307,7 @@ class LeanbackChannelWorker(
 
 			val latestMedia = async {
 				api.userLibraryApi.getLatestMedia(
-					fields = listOf(
-						ItemFields.OVERVIEW,
-					),
+					fields = ItemRepository.itemFields,
 					limit = 50,
 					includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
 					isPlayed = false
@@ -362,22 +348,10 @@ class LeanbackChannelWorker(
 			)
 			.setTitle(item.seriesName ?: item.name)
 			.setEpisodeTitle(if (item.type == BaseItemKind.EPISODE) item.name else null)
-			.setSeasonNumber(seasonString, item.parentIndexNumber ?: 0)
-			.setEpisodeNumber(episodeString, item.indexNumber ?: 0)
 			.setDescription(item.overview?.stripHtml())
 			.setReleaseDate(
 				if (item.premiereDate != null) DateTimeFormatter.ISO_DATE.format(item.premiereDate)
 				else null
-			)
-			.setDurationMillis(
-				if (item.runTimeTicks?.ticks != null) {
-					// If we are resuming, we need to show remaining time, cause GoogleTV
-					// ignores setLastPlaybackPositionMillis
-					val duration = item.runTimeTicks?.ticks ?: Duration.ZERO
-					val playbackPosition = item.userData?.playbackPositionTicks?.ticks
-						?: Duration.ZERO
-					(duration - playbackPosition).inWholeMilliseconds.toInt()
-				} else 0
 			)
 			.setPosterArtUri(imageUri)
 			.setPosterArtAspectRatio(
@@ -392,8 +366,22 @@ class LeanbackChannelWorker(
 				putExtra(StartupActivity.EXTRA_ITEM_ID, item.id.toString())
 				putExtra(StartupActivity.EXTRA_ITEM_IS_USER_VIEW, item.type == BaseItemKind.COLLECTION_FOLDER)
 			})
-			.build()
-			.toContentValues()
+			.setDurationMillis(
+				if (item.runTimeTicks?.ticks != null) {
+					// If we are resuming, we need to show remaining time, cause GoogleTV
+					// ignores setLastPlaybackPositionMillis
+					val duration = item.runTimeTicks?.ticks ?: Duration.ZERO
+					val playbackPosition = item.userData?.playbackPositionTicks?.ticks
+						?: Duration.ZERO
+					(duration - playbackPosition).inWholeMilliseconds.toInt()
+				} else 0
+			)
+			.apply {
+				if ((item.parentIndexNumber ?: 0) > 0)
+					setSeasonNumber(seasonString, item.parentIndexNumber!!)
+				if ((item.indexNumber ?: 0) > 0)
+					setEpisodeNumber(episodeString, item.indexNumber!!)
+			}.build().toContentValues()
 	}
 
 	/**
@@ -401,16 +389,57 @@ class LeanbackChannelWorker(
 	 * or other types of media. Uses the [nextUpItems] parameter to store items returned by a
 	 * NextUpQuery().
 	 */
+	@SuppressLint("RestrictedApi")
 	private fun updateWatchNext(nextUpItems: List<BaseItemDto>) {
-		// Delete current items
-		context.contentResolver.delete(WatchNextPrograms.CONTENT_URI, null, null)
+		deletePrograms(nextUpItems)
 
-		// Add new items
+		// Get current watch next state
+		val currentWatchNextPrograms = getCurrentWatchNext()
+
+		// Create all programs in nextUpItems but not in watch next
+		val programsToAdd = nextUpItems
+			.filter { next -> currentWatchNextPrograms.none { it.internalProviderId == next.id.toString() } }
 		context.contentResolver.bulkInsert(
 			WatchNextPrograms.CONTENT_URI,
-			nextUpItems.map { item -> getBaseItemAsWatchNextProgram(item).toContentValues() }
-				.toTypedArray()
-		)
+			programsToAdd.map { item -> getBaseItemAsWatchNextProgram(item).toContentValues() }
+				.toTypedArray())
+	}
+
+	/**
+	 * Delete stale programs from the watch next row. Items that don't need to be touched are
+	 * kept as is, so they keep their ordering in the watch next row.
+	 */
+	@SuppressLint("RestrictedApi")
+	private fun deletePrograms(nextUpItems: List<BaseItemDto>) {
+		// Retrieve current watch next row
+		val currentWatchNextPrograms = getCurrentWatchNext()
+
+		// Find all stale programs to delete
+		val deletedByUser = currentWatchNextPrograms.filter { !it.isBrowsable }
+		val noLongerInWatchNext =
+			currentWatchNextPrograms.filter { (nextUpItems).none { next -> it.internalProviderId == next.id.toString() } }
+		val continueWatching = currentWatchNextPrograms.filter { it.watchNextType == WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE }
+
+		// Delete the programs
+		(deletedByUser + noLongerInWatchNext + continueWatching)
+			.forEach { context.contentResolver.delete(TvContractCompat.buildWatchNextProgramUri(it.id), null, null) }
+	}
+
+	/**
+	 * Retrieves the current watch next row state.
+	 */
+	@SuppressLint("RestrictedApi")
+	private fun getCurrentWatchNext(): MutableList<WatchNextProgram> {
+		val currentWatchNextPrograms: MutableList<WatchNextProgram> = mutableListOf()
+		context.contentResolver.query(WatchNextPrograms.CONTENT_URI, WatchNextProgram.PROJECTION, null, null, null)
+			.use { cursor ->
+				if (cursor != null && cursor.moveToFirst()) {
+					do {
+						currentWatchNextPrograms.add(WatchNextProgram.fromCursor(cursor))
+					} while (cursor.moveToNext())
+				}
+			}
+		return currentWatchNextPrograms
 	}
 
 	/**
@@ -432,15 +461,21 @@ class LeanbackChannelWorker(
 				setPosterArtAspectRatio(WatchNextPrograms.ASPECT_RATIO_MOVIE_POSTER)
 			}
 
-			// Name
-			if (item.seriesName != null) setTitle("${item.seriesName} - ${item.name}")
-			else setTitle(item.name)
+			// Name and episode details
+			if (item.seriesName != null) {
+				setTitle(item.seriesName)
+				setEpisodeTitle(item.name)
+
+				item.indexNumber?.takeIf { it > 0 }?.let { setEpisodeNumber(it) }
+				item.parentIndexNumber?.takeIf { it > 0 }?.let { setSeasonNumber(it) }
+			} else {
+				setTitle(item.name)
+			}
+
+			setDescription(item.overview?.stripHtml())
 
 			// Poster
 			setPosterArtUri(item.getPosterArtImageUrl(preferParentThumb))
-
-			// Use date created or fallback to current time if unavailable
-			var engagement = item.dateCreated
 
 			when {
 				// User has started playing the episode
@@ -448,23 +483,29 @@ class LeanbackChannelWorker(
 					setWatchNextType(WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE)
 					setLastPlaybackPositionMillis(item.userData!!.playbackPositionTicks.ticks.inWholeMilliseconds.toInt())
 					// Use last played date to prioritize
-					engagement = item.userData?.lastPlayedDate
+
+					setLastEngagementTimeUtcMillis(
+						item.userData?.lastPlayedDate?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+							?: Instant.now().toEpochMilli()
+					)
 				}
 				// First episode of the season
-				item.indexNumber == 1 -> setWatchNextType(WatchNextPrograms.WATCH_NEXT_TYPE_NEW)
+				item.indexNumber == 1 -> {
+					setWatchNextType(WatchNextPrograms.WATCH_NEXT_TYPE_NEW)
+					setLastEngagementTimeUtcMillis(
+						item.dateCreated?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+							?: Instant.now().toEpochMilli()
+					)
+				}
 				// Default
-				else -> setWatchNextType(WatchNextPrograms.WATCH_NEXT_TYPE_NEXT)
+				else -> {
+					setWatchNextType(WatchNextPrograms.WATCH_NEXT_TYPE_NEXT)
+					setLastEngagementTimeUtcMillis(Instant.now().toEpochMilli())
+				}
 			}
 
-			setLastEngagementTimeUtcMillis(
-				engagement?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
-					?: Instant.now().toEpochMilli()
-			)
-
-			// Episode runtime has been determined
-			item.runTimeTicks?.let { runTimeTicks ->
-				setDurationMillis(runTimeTicks.ticks.inWholeMilliseconds.toInt())
-			}
+			// Runtime has been determined
+			item.runTimeTicks?.ticks?.let { setDurationMillis(it.inWholeMilliseconds.toInt()) }
 
 			// Set intent to open the episode
 			setIntent(Intent(context, StartupActivity::class.java).apply {

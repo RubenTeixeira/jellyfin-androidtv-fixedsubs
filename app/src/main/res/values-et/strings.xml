@@ -66,7 +66,6 @@
     <string name="grid_direction_horizontal">Horisontaalne</string>
     <string name="lbl_upcoming">Tulemas</string>
     <string name="bitrate_mbit">%1$,.0f Mbit/s</string>
-    <string name="lbl_min">" -min"</string>
     <string name="lbl_ends">Lõppeb</string>
     <string name="lbl_videos">Videod</string>
     <string name="lbl_none">Puudub</string>
@@ -176,9 +175,9 @@
     <string name="watch_now">Vaata nüüd</string>
     <string name="pref_next_up_behavior_title">Kuva järgmise video teave</string>
     <string name="bitrate_kbit">%1$,.0f Kbit/s</string>
-    <string name="msg_live_tv_next">Lae järgmised %1$d tundi\?</string>
+    <string name="msg_live_tv_next">Lae järgmised %1$d tundi?</string>
     <string name="mark_watched">Märgi vaadatuks</string>
-    <string name="msg_live_tv_prev">Lae eelmised %1$d tundi\?</string>
+    <string name="msg_live_tv_prev">Lae eelmised %1$d tundi?</string>
     <string name="too_many_errors">Liiga palju vigu. Annan alla</string>
     <string name="lbl_by_letter">Tähthaaval</string>
     <string name="lbl_directed_by">Lavastaja</string>
@@ -510,11 +509,6 @@
     <string name="lbl_subtitle_text_color">Subtiitrite teksti värv</string>
     <string name="lbl_subtitle_background_color">Subtiitrite tausta värv</string>
     <string name="lbl_subtitle_text_stroke_color">Subtiitrite piirjoone värv</string>
-    <string name="pref_subtitles_size_very_small">Väga väike</string>
-    <string name="pref_subtitles_size_small">Väike</string>
-    <string name="pref_subtitles_size_normal">Normaalne</string>
-    <string name="pref_subtitles_size_large">Suur</string>
-    <string name="pref_subtitles_size_very_large">Väga suur</string>
     <string name="indicator_subtitles">CC Subtiitrid</string>
     <string name="clear_image_cache">Puhasta pildi vahemälu</string>
     <string name="pref_screensaver_ageratingmax_unlimited">Keela maksimaalne</string>
@@ -554,4 +548,6 @@
     <string name="pref_screensaver_ageratingmax_zero">Kõik vanused</string>
     <string name="pref_screensaver_ageratingmax">Maksimaalne vanusepiirang</string>
     <string name="pref_screensaver_ageratingmax_entry">Kuni vanusele %1$d</string>
+    <string name="prefer_exoplayer_ffmpeg">Eelista heli taasesituseks FFmpeg\'i</string>
+    <string name="prefer_exoplayer_ffmpeg_content">Kasuta FFmpeg\'i heli dekodeerimiseks isegi kui platvormile on saadaolevad koodekid.</string>
 </resources>

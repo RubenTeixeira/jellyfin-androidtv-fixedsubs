@@ -16,6 +16,7 @@ import org.jellyfin.androidtv.ui.navigation.Destinations
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository
 import org.jellyfin.androidtv.ui.playback.MediaManager
 import org.jellyfin.androidtv.ui.playback.PlaybackControllerContainer
+import org.jellyfin.androidtv.ui.playback.setSubtitleIndex
 import org.jellyfin.androidtv.util.PlaybackHelper
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.ApiClientException
@@ -54,32 +55,33 @@ class SocketHandler(
 
 	suspend fun updateSession() {
 		try {
-			api.sessionApi.postCapabilities(
-				playableMediaTypes = listOf(MediaType.VIDEO, MediaType.AUDIO),
-				supportsMediaControl = true,
-				supportedCommands = buildList {
-					add(GeneralCommandType.DISPLAY_CONTENT)
-					add(GeneralCommandType.SET_SUBTITLE_STREAM_INDEX)
-					add(GeneralCommandType.SET_AUDIO_STREAM_INDEX)
+			withContext(Dispatchers.IO) {
+				api.sessionApi.postCapabilities(
+					playableMediaTypes = listOf(MediaType.VIDEO, MediaType.AUDIO),
+					supportsMediaControl = true,
+					supportedCommands = buildList {
+						add(GeneralCommandType.DISPLAY_CONTENT)
+						add(GeneralCommandType.SET_SUBTITLE_STREAM_INDEX)
+						add(GeneralCommandType.SET_AUDIO_STREAM_INDEX)
 
-					add(GeneralCommandType.DISPLAY_MESSAGE)
-					add(GeneralCommandType.SEND_STRING)
+						add(GeneralCommandType.DISPLAY_MESSAGE)
+						add(GeneralCommandType.SEND_STRING)
 
-					// Note: These are used in the PlaySessionSocketService
-					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !audioManager.isVolumeFixed) {
-						add(GeneralCommandType.VOLUME_UP)
-						add(GeneralCommandType.VOLUME_DOWN)
-						add(GeneralCommandType.SET_VOLUME)
+						// Note: These are used in the PlaySessionSocketService
+						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !audioManager.isVolumeFixed) {
+							add(GeneralCommandType.VOLUME_UP)
+							add(GeneralCommandType.VOLUME_DOWN)
+							add(GeneralCommandType.SET_VOLUME)
 
-						add(GeneralCommandType.MUTE)
-						add(GeneralCommandType.UNMUTE)
-						add(GeneralCommandType.TOGGLE_MUTE)
-					}
-				},
-			)
+							add(GeneralCommandType.MUTE)
+							add(GeneralCommandType.UNMUTE)
+							add(GeneralCommandType.TOGGLE_MUTE)
+						}
+					},
+				)
+			}
 		} catch (err: ApiClientException) {
 			Timber.e(err, "Unable to update capabilities")
-			return
 		}
 	}
 
@@ -104,7 +106,7 @@ class SocketHandler(
 					val index = message["index"]?.toIntOrNull() ?: return@onEach
 
 					withContext(Dispatchers.Main) {
-						playbackControllerContainer.playbackController?.switchSubtitleStream(index)
+						playbackControllerContainer.playbackController?.setSubtitleIndex(index)
 					}
 				}
 				.launchIn(coroutineScope)

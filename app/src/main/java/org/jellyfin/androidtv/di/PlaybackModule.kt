@@ -6,23 +6,26 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
-import org.jellyfin.androidtv.BuildConfig
+import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import okhttp3.OkHttpClient
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.preference.UserPreferences
 import org.jellyfin.androidtv.preference.UserSettingPreferences
 import org.jellyfin.androidtv.ui.browsing.MainActivity
-import org.jellyfin.androidtv.ui.playback.GarbagePlaybackLauncher
 import org.jellyfin.androidtv.ui.playback.MediaManager
-import org.jellyfin.androidtv.ui.playback.RewritePlaybackLauncher
+import org.jellyfin.androidtv.ui.playback.PlaybackLauncher
 import org.jellyfin.androidtv.ui.playback.VideoQueueManager
 import org.jellyfin.androidtv.ui.playback.rewrite.RewriteMediaManager
+import org.jellyfin.androidtv.util.profile.createDeviceProfile
 import org.jellyfin.playback.core.playbackManager
 import org.jellyfin.playback.jellyfin.jellyfinPlugin
 import org.jellyfin.playback.media3.exoplayer.ExoPlayerOptions
 import org.jellyfin.playback.media3.exoplayer.exoPlayerPlugin
 import org.jellyfin.playback.media3.session.MediaSessionOptions
 import org.jellyfin.playback.media3.session.media3SessionPlugin
-import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.HttpClientOptions
+import org.jellyfin.sdk.api.okhttp.OkHttpFactory
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
@@ -32,14 +35,16 @@ import org.jellyfin.androidtv.ui.playback.PlaybackManager as LegacyPlaybackManag
 val playbackModule = module {
 	single { LegacyPlaybackManager(get()) }
 	single { VideoQueueManager() }
-	single<MediaManager> { RewriteMediaManager(get(), get(), get(), get()) }
+	single<MediaManager> { RewriteMediaManager(get(), get()) }
 
-	factory {
-		val preferences = get<UserPreferences>()
-		val useRewrite = preferences[UserPreferences.playbackRewriteVideoEnabled] && BuildConfig.DEVELOPMENT
+	single { PlaybackLauncher(get(), get(), get(), get()) }
 
-		if (useRewrite) RewritePlaybackLauncher()
-		else GarbagePlaybackLauncher(get())
+	// OkHttp data source using OkHttpFactory from SDK
+	single<HttpDataSource.Factory> {
+		val okHttpFactory = get<OkHttpFactory>()
+		val httpClientOptions = get<HttpClientOptions>()
+
+		OkHttpDataSource.Factory(okHttpFactory.createClient(httpClientOptions))
 	}
 
 	single { createPlaybackManager() }
@@ -56,16 +61,16 @@ fun Scope.createPlaybackManager() = playbackManager(androidContext()) {
 			notificationChannelId,
 			NotificationManager.IMPORTANCE_LOW
 		)
+		channel.setShowBadge(false)
 		NotificationManagerCompat.from(get()).createNotificationChannel(channel)
 	}
 
 	val userPreferences = get<UserPreferences>()
-	val api = get<ApiClient>()
 	val exoPlayerOptions = ExoPlayerOptions(
-		httpConnectTimeout = api.httpClientOptions.connectTimeout,
-		httpReadTimeout = api.httpClientOptions.requestTimeout,
 		preferFfmpeg = userPreferences[UserPreferences.preferExoPlayerFfmpeg],
+		enableLibass = userPreferences[UserPreferences.assDirectPlay],
 		enableDebugLogging = userPreferences[UserPreferences.debuggingEnabled],
+		baseDataSourceFactory = get<HttpDataSource.Factory>(),
 	)
 	install(exoPlayerPlugin(get(), exoPlayerOptions))
 
@@ -77,7 +82,8 @@ fun Scope.createPlaybackManager() = playbackManager(androidContext()) {
 	)
 	install(media3SessionPlugin(get(), mediaSessionOptions))
 
-	install(jellyfinPlugin(get()))
+	val deviceProfileBuilder = { createDeviceProfile(userPreferences, false) }
+	install(jellyfinPlugin(get(), deviceProfileBuilder))
 
 	// Options
 	val userSettingPreferences = get<UserSettingPreferences>()

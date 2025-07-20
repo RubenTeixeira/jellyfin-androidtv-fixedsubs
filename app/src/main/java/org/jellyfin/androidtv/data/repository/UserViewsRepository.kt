@@ -1,7 +1,9 @@
 package org.jellyfin.androidtv.data.repository
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.userViewsApi
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -21,10 +23,9 @@ class UserViewsRepositoryImpl(
 	override val views = flow {
 		val views by api.userViewsApi.getUserViews()
 		val filteredViews = views.items
-			.orEmpty()
 			.filter { isSupported(it.collectionType) }
 		emit(filteredViews)
-	}
+	}.flowOn(Dispatchers.IO)
 
 	override fun isSupported(collectionType: CollectionType?) = collectionType !in unsupportedCollectionTypes
 	override fun allowViewSelection(collectionType: CollectionType?) = collectionType !in disallowViewSelectionCollectionTypes

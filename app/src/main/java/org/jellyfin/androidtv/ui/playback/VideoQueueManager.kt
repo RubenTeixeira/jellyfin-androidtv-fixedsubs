@@ -5,7 +5,7 @@ import org.jellyfin.sdk.model.api.BaseItemDto
 class VideoQueueManager {
 	private var _currentVideoQueue: List<BaseItemDto> = emptyList()
 	private var _currentMediaPosition = -1
-	var isVideoQueueModified: Boolean = false
+	private var _lastPlayedAudioLanguageIsoCode: String? = null
 
 	fun setCurrentVideoQueue(items: List<BaseItemDto>?) {
 		if (items.isNullOrEmpty()) return clearVideoQueue()
@@ -24,9 +24,17 @@ class VideoQueueManager {
 
 	fun getCurrentMediaPosition() = _currentMediaPosition
 
+	fun getLastPlayedAudioLanguageIsoCode(): String? {
+		return _lastPlayedAudioLanguageIsoCode
+	}
+
+	fun setLastPlayedAudioLanguageIsoCode(isoCode: String) {
+		_lastPlayedAudioLanguageIsoCode = isoCode
+	}
+
 	fun clearVideoQueue() {
 		_currentVideoQueue = emptyList()
-		isVideoQueueModified = false
 		_currentMediaPosition = -1
+		_lastPlayedAudioLanguageIsoCode = null
 	}
 }

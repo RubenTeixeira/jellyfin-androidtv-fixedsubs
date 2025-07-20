@@ -8,17 +8,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Text
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.preference.UserPreferences
 import org.jellyfin.androidtv.preference.constant.RatingType
+import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.composable.getResolutionName
 import org.jellyfin.androidtv.util.TimeUtils
 import org.jellyfin.androidtv.util.sdk.getProgramSubText
@@ -118,7 +119,7 @@ fun BaseItemInfoRowRuntime(
 	runTime: Duration,
 ) {
 	InfoRowItem(
-		icon = painterResource(id = R.drawable.ic_time),
+		icon = ImageVector.vectorResource(id = R.drawable.ic_time),
 		contentDescription = null,
 	) {
 		Text(TimeUtils.formatMillis(runTime.inWholeMilliseconds))
@@ -150,10 +151,20 @@ private fun List<MediaStream>.getDefault(type: MediaStreamType, defaultIndex: In
 fun InfoRowMediaDetails(mediaSource: MediaSourceInfo) {
 	val videoStream = mediaSource.mediaStreams?.getDefault(MediaStreamType.VIDEO)
 	val audioStream = mediaSource.mediaStreams?.getDefault(MediaStreamType.AUDIO, mediaSource.defaultAudioStreamIndex)
-	val subtitleStream = mediaSource.mediaStreams?.getDefault(MediaStreamType.SUBTITLE, mediaSource.defaultSubtitleStreamIndex)
+	val hasSdhSubtitleStream = mediaSource.mediaStreams?.any { it.type == MediaStreamType.SUBTITLE && it.isHearingImpaired } == true
+	val hasCcSubtitleStream = mediaSource.mediaStreams?.any { it.type == MediaStreamType.SUBTITLE && !it.isHearingImpaired } == true
 
 	// Subtitles
-	if (subtitleStream != null) {
+	if (hasSdhSubtitleStream) {
+		InfoRowItem(
+			contentDescription = null,
+			colors = InfoRowColors.Default,
+		) {
+			Text(stringResource(R.string.indicator_subtitles_hearing_impaired))
+		}
+	}
+
+	if (hasCcSubtitleStream) {
 		InfoRowItem(
 			contentDescription = null,
 			colors = InfoRowColors.Default,

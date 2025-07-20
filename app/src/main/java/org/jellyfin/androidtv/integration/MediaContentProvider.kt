@@ -9,19 +9,22 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.provider.BaseColumns
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.jellyfin.androidtv.BuildConfig
 import org.jellyfin.androidtv.R
+import org.jellyfin.androidtv.data.repository.ItemRepository
 import org.jellyfin.androidtv.integration.provider.ImageProvider
 import org.jellyfin.androidtv.util.ImageHelper
+import org.jellyfin.androidtv.util.apiclient.getUrl
+import org.jellyfin.androidtv.util.apiclient.itemImages
 import org.jellyfin.androidtv.util.sdk.isUsable
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.ApiClientException
-import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
 import org.jellyfin.sdk.model.api.ImageType
-import org.jellyfin.sdk.model.api.ItemFields
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import timber.log.Timber
@@ -61,8 +64,9 @@ class MediaContentProvider : ContentProvider(), KoinComponent {
 
 				val limit = uri.getQueryParameter(SearchManager.SUGGEST_PARAMETER_LIMIT)?.toIntOrNull()
 					?: DEFAULT_LIMIT
-				return getSuggestions(query, limit)
+				return runBlocking { getSuggestions(query, limit) }
 			}
+
 			else -> throw IllegalArgumentException("Unknown Uri: $uri")
 		}
 	}
@@ -75,7 +79,7 @@ class MediaContentProvider : ContentProvider(), KoinComponent {
 			searchTerm = query,
 			recursive = true,
 			limit = limit,
-			fields = setOf(ItemFields.TAGLINES)
+			fields = ItemRepository.itemFields
 		)
 
 		items
@@ -84,7 +88,7 @@ class MediaContentProvider : ContentProvider(), KoinComponent {
 		null
 	}
 
-	private fun getSuggestions(query: String, limit: Int) = runBlocking {
+	private suspend fun getSuggestions(query: String, limit: Int) = withContext(Dispatchers.IO) {
 		val searchResult = searchItems(query, limit)
 		if (searchResult != null) Timber.d("Query resulted in %d items", searchResult.totalRecordCount)
 
@@ -104,10 +108,10 @@ class MediaContentProvider : ContentProvider(), KoinComponent {
 
 		MatrixCursor(columns).also { cursor ->
 			searchResult?.items?.forEach { item ->
-				val imageUri = if (item.imageTags?.contains(ImageType.PRIMARY) == true)
-					ImageProvider.getImageUri(api.imageApi.getItemImageUrl(item.id, ImageType.PRIMARY))
-				else
-					imageHelper.getResourceUrl(context!!, R.drawable.tile_land_tv)
+				val imageUri = ImageProvider.getImageUri(
+					item.itemImages[ImageType.PRIMARY]?.getUrl(api)
+						?: imageHelper.getResourceUrl(context!!, R.drawable.tile_land_tv)
+				)
 
 				cursor.newRow().apply {
 					add(BaseColumns._ID, item.id)

@@ -1,13 +1,15 @@
 package org.jellyfin.androidtv.ui.browsing
 
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jellyfin.androidtv.data.repository.ItemRepository
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
 import org.jellyfin.sdk.model.api.BaseItemKind
-import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.LocationType
 import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.api.TimerInfoDto
@@ -23,15 +25,13 @@ fun EnhancedBrowseFragment.getLiveTvRecordingsAndTimers(
 
 	lifecycleScope.launch {
 		runCatching {
-			val recordings by api.liveTvApi.getRecordings(
-				fields = setOf(
-					ItemFields.OVERVIEW,
-					ItemFields.PRIMARY_IMAGE_ASPECT_RATIO,
-					ItemFields.CHILD_COUNT,
-				),
-				enableImages = true,
-				limit = 40,
-			)
+			val recordings = withContext(Dispatchers.IO) {
+				api.liveTvApi.getRecordings(
+					fields = ItemRepository.itemFields,
+					enableImages = true,
+					limit = 40,
+				).content
+			}
 
 			val timers by api.liveTvApi.getTimers()
 
@@ -51,7 +51,9 @@ fun EnhancedBrowseFragment.getLiveTvTimers(
 
 	lifecycleScope.launch {
 		runCatching {
-			 api.liveTvApi.getTimers().content
+			withContext(Dispatchers.IO) {
+				api.liveTvApi.getTimers().content
+			}
 		}.fold(
 			onSuccess = { timers -> callback(timers) },
 			onFailure = { exception -> errorCallback(exception) }

@@ -49,7 +49,6 @@
     <string name="lbl_upcoming">A Seguir</string>
     <string name="lbl_sd">SD</string>
     <string name="lbl_runs">Duração</string>
-    <string name="lbl_min">" min"</string>
     <string name="lbl_ends">Finaliza às</string>
     <string name="lbl_directed_by">Dirigido por</string>
     <string name="lbl_last_played">"Reproduzidos recentemente "</string>
@@ -77,7 +76,7 @@
     <string name="msg_cannot_play">Este item não pode ser reproduzido</string>
     <string name="lbl_no_items">Sem itens</string>
     <string name="lbl_empty">Vazio</string>
-    <string name="lbl_tv_queuing">Enfileirar todos os próximos episódios</string>
+    <string name="lbl_tv_queuing">Reproduzir próximo episódio automaticamente</string>
     <string name="lbl_search_hint">Buscar texto (selecione para teclado)</string>
     <string name="lbl_play_first_unwatched">Reproduzir não assistido primeiro</string>
     <string name="lbl_mark_unplayed">Marcar como Não Reproduzido</string>
@@ -251,8 +250,8 @@
     <string name="too_many_errors">Erros excessivos. Desistindo</string>
     <string name="player_error">Erro no reprodutor encontrado. Tentando novamente…</string>
     <string name="seek_error">Incapaz de buscar</string>
-    <string name="msg_live_tv_prev">Carregar às %1$d horas prévias\?</string>
-    <string name="msg_live_tv_next">Carregar próximas %1$d horas\?</string>
+    <string name="msg_live_tv_prev">Carregar as %1$d horas anteriores?</string>
+    <string name="msg_live_tv_next">Carregar as próximas %1$d horas?</string>
     <string name="lbl_load_guide_data">Carregar programação dos canais</string>
     <string name="episode_missing_message_2">Esse episódio não está disponível na sua biblioteca. A reprodução será interrompida.</string>
     <string name="episode_missing_message">Esse episódio não está disponível na sua biblioteca. Gostaria de pular esse e continuar para o próximo\?</string>
@@ -261,7 +260,7 @@
     <string name="lbl_audio_track">Selecionar faixa de áudio</string>
     <string name="lbl_pause">Pausar</string>
     <string name="watch_count_overflow">99+</string>
-    <string name="lbl_playback_control_ends">Termina em %1$s</string>
+    <string name="lbl_playback_control_ends">Termina às %1$s</string>
     <string name="lbl_sign_in">Por favor, faça login</string>
     <string name="login_username_field_empty">O nome de usuário não pode estar vazio</string>
     <string name="login_server_unavailable">Incapaz de conectar ao servidor</string>
@@ -454,7 +453,7 @@
     <string name="server_setup_incomplete">A configuração desse servidor não foi concluída. Abra o Jellyfin em um navegador para concluir a configuração antes de fazer login.</string>
     <string name="episode_name_special">especial</string>
     <string name="app_notification_beta">Aplicativo atualizado para %1$s
-\nObrigado por participar do programa beta do Jellyfin</string>
+\nObrigado por participar do programa beta do Jellyfin.</string>
     <string name="item_deleted">%1$s deletado</string>
     <string name="pref_enable_media_management">Ativar o gerenciamento de mídia</string>
     <string name="item_delete_confirm_title">Deletar item</string>
@@ -516,19 +515,19 @@
         <item quantity="other">Utilizados:%1$s</item>
     </plurals>
     <plurals name="movies">
-        <item quantity="one">Filmes %1$s</item>
-        <item quantity="many">Filmes %1$s</item>
-        <item quantity="other">Filmes %1$s</item>
+        <item quantity="one">%1$s filme</item>
+        <item quantity="many">%1$s filmes</item>
+        <item quantity="other">%1$s filmes</item>
     </plurals>
     <plurals name="tv_series">
-        <item quantity="one">%1$s séries de TV</item>
+        <item quantity="one">%1$s série de TV</item>
         <item quantity="many">%1$s séries de TV</item>
         <item quantity="other">%1$s séries de TV</item>
     </plurals>
     <plurals name="songs">
-        <item quantity="one">Músicas de %1$s</item>
-        <item quantity="many">Músicas de %1$s</item>
-        <item quantity="other">Músicas de %1$s</item>
+        <item quantity="one">%1$s música</item>
+        <item quantity="many">%1$s músicas</item>
+        <item quantity="other">%1$s músicas</item>
     </plurals>
     <plurals name="albums">
         <item quantity="one">Álbum %1$s</item>
@@ -548,4 +547,48 @@
     <string name="pref_screensaver_ageratingmax_unlimited">Desabilitar máximo</string>
     <string name="pref_screensaver_ageratingrequired_title">Requerer classificação etária</string>
     <string name="pref_screensaver_ageratingrequired_disabled">Exibindo todos os itens</string>
+    <string name="app_notification_update_soon">Atualize o servidor de %1$s a pelo menos %2$s para continuar usando o aplicativo após a próxima atualização.</string>
+    <string name="scheduled_in_next_24_hours">Marcado nas próximas 24 horas</string>
+    <string name="past_24_hours">Últimas 24 horas</string>
+    <string name="prefer_exoplayer_ffmpeg">Preferir FFmpeg para reprodução de áudio</string>
+    <string name="video_start_delay">Atraso de início de vídeo</string>
+    <string name="default_video_zoom">Modo de zoom padrão</string>
+    <string name="lbl_subtitle_text_color">Cor do texto da legenda</string>
+    <string name="lbl_subtitle_background_color">Cor do fundo da legenda</string>
+    <string name="lbl_subtitle_text_stroke_color">Cor da borda da legenda</string>
+    <string name="continue_listening">Continuar reproduzindo</string>
+    <string name="all_channels">Todos os canais</string>
+    <string name="past_week">Ultima semana</string>
+    <string name="pref_external_player">Usar reprodutor externo</string>
+    <string name="current_queue">Fila atual</string>
+    <string name="prefer_exoplayer_ffmpeg_content">Usar o FFmpeg para decodificar áudio, mesmo se codecs nativos estiverem disponíveis.</string>
+    <string name="segment_type_preview">Pré-visualizações</string>
+    <string name="segment_type_unknown">Segmentos desconhecidos</string>
+    <string name="segment_type_recap">Recapitulações</string>
+    <string name="segment_action_ask_to_skip">Pedir para pular</string>
+    <string name="skip_forward_length">Quantidade de tempo do avançar</string>
+    <string name="segment_action_nothing">Fazer nada</string>
+    <string name="segment_action_skip">Pular</string>
+    <string name="segment_type_commercial">Comerciais</string>
+    <string name="segment_type_intro">Intros</string>
+    <string name="fast_forward">Avanço rápido</string>
+    <string name="rewind">Retroceder</string>
+    <string name="preference_enable_trickplay">Habilitar trickplay no player de vídeo</string>
+    <string name="pref_subtitles_background_opacity">Opacidade do fundo da legenda</string>
+    <string name="pref_report_device_profile_title">Reportar recursos de reprodução ao servidor</string>
+    <string name="pref_troubleshooting">Solução de problemas</string>
+    <string name="pref_report_device_profile_success">Documento enviado como %1$s</string>
+    <string name="pref_mediasegment_actions">Ações de segmento de mídia</string>
+    <string name="runtime_hours_minutes">%1$dh %2$dm</string>
+    <string name="runtime_minutes">%1$dm</string>
+    <string name="indicator_subtitles_hearing_impaired">Legenda descritiva</string>
+    <string name="segment_type_outro">Outros</string>
+    <string name="pref_report_device_profile_summary">Carregue um documento de solução de problemas para o servidor Jellyfin com informações sobre recursos de reprodução</string>
+    <string name="pref_report_device_profile_failure">Falha ao enviar o documento. Seu servidor Jellyfin pode proibir logs de clientes.</string>
+    <string name="pref_subtitles_bold">Texto negrito</string>
+    <string name="lbl_from_beginning">Reproduzir do início</string>
+    <string name="preference_enable_libass">Ativar renderização avançada de legendas SubStation Alpha no cliente</string>
+    <string name="speech_error_unavailable">O reconhecimento de fala não está disponível no seu dispositivo.</string>
+    <string name="speech_error_no_permission">Sem permissão para usar o microfone. Por favor, ative-a nas configurações do sistema.</string>
+    <string name="speech_error_unknown">Ocorreu um erro inesperado durante o reconhecimento de fala.</string>
 </resources>
