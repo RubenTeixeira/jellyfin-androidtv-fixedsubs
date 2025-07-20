@@ -29,3 +29,10 @@ jobs:
           mv app/build/outputs/apk/*/jellyfin-androidtv-*-debug.apk build/jellyfin-publish/
           mv app/build/outputs/apk/*/jellyfin-androidtv-*-release-unsigned.apk build/jellyfin-publish/
           mv app/build/version.txt build/jellyfin-publish/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          path: build/gh-app-publish/
