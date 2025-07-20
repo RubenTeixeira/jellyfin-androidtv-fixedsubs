@@ -3,12 +3,15 @@ package org.jellyfin.androidtv.ui.playback;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.media.MediaFormat;
+import android.media.MediaPlayer;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.DynamicsProcessing.Limiter;
 import android.media.audiofx.Equalizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -26,6 +29,7 @@ import androidx.media3.common.TrackGroup;
 import androidx.media3.common.TrackSelectionOverride;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
+import androidx.media3.common.VideoSize;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
@@ -35,6 +39,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 import androidx.media3.exoplayer.util.EventLogger;
+import androidx.media3.exoplayer.video.VideoFrameMetadataListener;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 import androidx.media3.extractor.ts.TsExtractor;
 import androidx.media3.ui.AspectRatioFrameLayout;
@@ -111,8 +116,25 @@ public class VideoManager {
                 strokeColor,
                 null
         );
-        mExoPlayerView.getSubtitleView().setFractionalTextSize(0.0533f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()));
+        mExoPlayerView.getSubtitleView().setFractionalTextSize(0.0533f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
         mExoPlayerView.getSubtitleView().setStyle(subtitleStyle);
+
+        mExoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onVideoSizeChanged(VideoSize videoSize) {
+                try {
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) mExoPlayerView.getLayoutParams();
+                    FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) mExoPlayerView.getSubtitleView().getLayoutParams();
+                    int dh = mActivity.getWindow().getDecorView().getHeight();
+                    int vh = videoSize.height;
+                    int negativeMargin = ((dh-vh)/2);
+                    subslp.bottomMargin = subslp.bottomMargin - negativeMargin;
+                    mExoPlayerView.getSubtitleView().setLayoutParams(subslp);
+                    mExoPlayerView.setClipChildren(false);
+                } catch (Exception e) {
+                }
+                }
+        });
         mExoPlayer.addListener(new Player.Listener() {
             @Override
             public void onPlayerError(@NonNull PlaybackException error) {
