@@ -11,6 +11,7 @@ import android.media.audiofx.Equalizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -139,11 +140,14 @@ public class VideoManager {
                         return;
                     if (vw>dw)
                         vh = (int) (dw/ar);
-                    FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) mExoPlayerView.getSubtitleView().getLayoutParams();
                     int negativeMargin = (dh-vh)/2;
-                    subslp.bottomMargin = subslp.bottomMargin - negativeMargin;
+                    Resources r = context.getResources();
+                    int dipMargin = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, negativeMargin, r.getDisplayMetrics());
+                    FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) mExoPlayerView.getSubtitleView().getLayoutParams();
+                    subslp.bottomMargin = subslp.bottomMargin - dipMargin + 12;
                     mExoPlayerView.getSubtitleView().setLayoutParams(subslp);
                     mExoPlayerView.setClipChildren(false);
+                    mExoPlayerView.getSubtitleView().setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION+0.01f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
                 } catch (Exception e) {
                 }
                 }
