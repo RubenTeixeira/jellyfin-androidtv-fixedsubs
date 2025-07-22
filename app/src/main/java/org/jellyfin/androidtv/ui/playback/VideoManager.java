@@ -141,13 +141,12 @@ public class VideoManager {
                     if (vw>dw)
                         vh = (int) (dw/ar);
                     int negativeMargin = (dh-vh)/2;
-                    Resources r = context.getResources();
-                    int dipMargin = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, negativeMargin, r.getDisplayMetrics());
                     FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) mExoPlayerView.getSubtitleView().getLayoutParams();
-                    subslp.bottomMargin = subslp.bottomMargin - dipMargin + 12;
+                    subslp.bottomMargin = subslp.bottomMargin - negativeMargin + (int)(negativeMargin * 0.075f);
                     mExoPlayerView.getSubtitleView().setLayoutParams(subslp);
                     mExoPlayerView.setClipChildren(false);
-                    mExoPlayerView.getSubtitleView().setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION+0.01f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
+                    float increaseFactor = negativeMargin/17800f;
+                    mExoPlayerView.getSubtitleView().setFractionalTextSize((SubtitleView.DEFAULT_TEXT_SIZE_FRACTION+increaseFactor) * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
                 } catch (Exception e) {
                 }
                 }
