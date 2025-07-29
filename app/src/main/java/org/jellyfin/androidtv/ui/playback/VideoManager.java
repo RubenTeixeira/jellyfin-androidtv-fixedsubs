@@ -120,6 +120,7 @@ public class VideoManager {
                 null
         );
         mExoPlayerView.getSubtitleView().setFractionalTextSize(0.0533f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
+        mExoPlayerView.getSubtitleView().setBottomPaddingFraction(userPreferences.get(UserPreferences.Companion.getSubtitlesOffset()));
         mExoPlayerView.getSubtitleView().setStyle(subtitleStyle);
 
         mExoPlayer.addListener(new Player.Listener() {

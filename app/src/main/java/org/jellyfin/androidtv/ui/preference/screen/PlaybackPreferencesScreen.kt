@@ -161,6 +161,23 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 					default { (UserPreferences.subtitlesTextSize.defaultValue * 100f).roundToInt() }
 				}
 			}
+
+			@Suppress("MagicNumber")
+			seekbar {
+				setTitle(R.string.lbl_subtitle_position)
+				min = 0 // 0.0f
+				max = 100 // 1.0f
+				increment = 1 // 0.01f
+				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+					override fun display(value: Int): String = "$value%"
+				}
+
+				bind {
+					get { (userPreferences[UserPreferences.subtitlesOffset] * 100f).roundToInt() }
+					set { value -> userPreferences[UserPreferences.subtitlesOffset] = value / 100f }
+					default { (UserPreferences.subtitlesOffset.defaultValue * 100f).roundToInt() }
+				}
+			}
 		}
 
 		category {
