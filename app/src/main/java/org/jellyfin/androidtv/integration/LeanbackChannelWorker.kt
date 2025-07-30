@@ -233,11 +233,11 @@ class LeanbackChannelWorker(
 	): Uri = when {
 		type == BaseItemKind.MOVIE || type == BaseItemKind.SERIES -> api.imageApi.getItemImageUrl(
 			itemId = id,
-			imageType = ImageType.PRIMARY,
+			imageType = ImageType.THUMB,
 			format = ImageFormat.WEBP,
-			width = 106.dp(context),
+			width = 272.dp(context),
 			height = 153.dp(context),
-			tag = imageTags?.get(ImageType.PRIMARY),
+			tag = imageTags?.get(ImageType.THUMB),
 		)
 
 		(preferParentThumb || imageTags?.contains(ImageType.PRIMARY) != true) && parentThumbItemId != null -> api.imageApi.getItemImageUrl(
