@@ -4,9 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
-import android.graphics.Point;
-import android.media.MediaFormat;
-import android.media.MediaPlayer;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.DynamicsProcessing.Limiter;
 import android.media.audiofx.Equalizer;
@@ -15,7 +12,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.util.TypedValue;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -126,32 +122,35 @@ public class VideoManager {
         mExoPlayerView.getSubtitleView().setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
         mExoPlayerView.getSubtitleView().setStyle(subtitleStyle);
 
+        // Subtitle position and size patch
         mExoPlayer.addListener(new Player.Listener() {
+            /**
+             * This Listener will await VideoSize info in order to override SubtitleView
+             * layout parameters in case it is a widescreen video. It will fill the entire
+             * screen instead of just the video view.
+             * @param videoSize The new size of the video.
+             */
             @Override
-            public void onVideoSizeChanged(VideoSize videoSize) {
-                try {
-                    Context context = mActivity.getWindow().getDecorView().getContext();
-                    WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-                    Point size = new Point();
-                    wm.getDefaultDisplay().getRealSize(size);
-                    int dh = size.y;
-                    int dw = size.x;
-                    int vh = videoSize.height;
-                    int vw = videoSize.width;
-                    float ar = (float) vw / vh;
-                    if (ar<1.78f)
-                        return;
-                    if (vw>dw)
-                        vh = (int) (dw/ar);
-                    int negativeMargin = (dh-vh)/2;
-                    FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) mExoPlayerView.getSubtitleView().getLayoutParams();
-                    subslp.bottomMargin = subslp.bottomMargin - negativeMargin + (int)(negativeMargin * 0.075f);
-                    mExoPlayerView.getSubtitleView().setLayoutParams(subslp);
-                    mExoPlayerView.setClipChildren(false);
-                    float increaseFactor = negativeMargin/17800f;
-                    mExoPlayerView.getSubtitleView().setFractionalTextSize((SubtitleView.DEFAULT_TEXT_SIZE_FRACTION+increaseFactor) * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
-                } catch (Exception e) {
-                }
+            public void onVideoSizeChanged(@NonNull VideoSize videoSize) {
+                SubtitleView subtitleView = mExoPlayerView.getSubtitleView();
+                int videoHeight = videoSize.height;
+                int videoWidth = videoSize.width;
+                float aspectRatio = (float) videoWidth / videoHeight;
+                // We're changing wide aspect ratio video subtitle to match others, so return if lower AR
+                if (aspectRatio<1.78f)
+                    return;
+                // In case movie is 4k, transform videoHeight in its 1080p equivalent
+                // because display dimensions are 1080p conformant
+                if (videoHeight > mExoPlayerView.getHeight())
+                    videoHeight = (int) (mExoPlayerView.getWidth() / aspectRatio);
+                FrameLayout.LayoutParams subslp = (FrameLayout.LayoutParams) subtitleView.getLayoutParams();
+                int verticalMargins = mExoPlayerView.getHeight() - videoHeight;
+                subslp.height = mExoPlayerView.getHeight();
+                // Elevate SubtitleView by 1 vertical margin, otherwise it will start drawing below the top of the screen
+                subslp.topMargin = verticalMargins/(-2);
+                // Store new params and make the subs view visible despite being outside parent
+                subtitleView.setLayoutParams(subslp);
+                mExoPlayerView.setClipChildren(false);
             }
         });
 
