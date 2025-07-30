@@ -26,6 +26,7 @@ androidx-window = "1.4.0"
 androidx-work = "2.10.2"
 coil = "3.3.0"
 detekt = "1.23.8"
+engageTv = "1.0.2"
 java-jdk = "21"
 jellyfin-androidx-media = "1.6.1+1"
 jellyfin-sdk = "1.7.0-beta.3"
@@ -127,6 +128,8 @@ android-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref =
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+engageTv = { module = "com.google.android.engage:engage-tv", version.ref = "engageTv" }
 
 [bundles]
 acra = [
