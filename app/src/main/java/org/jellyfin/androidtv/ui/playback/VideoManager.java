@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.media.MediaFormat;
+import android.media.MediaPlayer;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.DynamicsProcessing.Limiter;
 import android.media.audiofx.Equalizer;
@@ -120,6 +122,7 @@ public class VideoManager {
                 strokeColor,
                 null
         );
+        mExoPlayerView.getSubtitleView().setBottomPaddingFraction(userPreferences.get(UserPreferences.Companion.getSubtitlesOffset()));
         mExoPlayerView.getSubtitleView().setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
         mExoPlayerView.getSubtitleView().setStyle(subtitleStyle);
 
@@ -149,7 +152,7 @@ public class VideoManager {
                     mExoPlayerView.getSubtitleView().setFractionalTextSize((SubtitleView.DEFAULT_TEXT_SIZE_FRACTION+increaseFactor) * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
                 } catch (Exception e) {
                 }
-                }
+            }
         });
 
         mExoPlayer.addListener(new Player.Listener() {
