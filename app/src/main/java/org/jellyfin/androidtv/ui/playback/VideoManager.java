@@ -2,6 +2,7 @@ package org.jellyfin.androidtv.ui.playback;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.media.MediaFormat;
@@ -12,7 +13,7 @@ import android.media.audiofx.Equalizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
-import android.view.Gravity;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -41,7 +42,6 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 import androidx.media3.exoplayer.util.EventLogger;
-import androidx.media3.exoplayer.video.VideoFrameMetadataListener;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 import androidx.media3.extractor.ts.TsExtractor;
 import androidx.media3.ui.AspectRatioFrameLayout;
@@ -83,6 +83,9 @@ public class VideoManager {
     private long lastExoPlayerPosition = -1;
     private boolean nightModeEnabled;
 
+    private int displayHeight = -1;
+    private int videoHeight = -1;
+
     public boolean isContracted = false;
 
     private final UserPreferences userPreferences = KoinJavaComponent.get(UserPreferences.class);
@@ -119,8 +122,8 @@ public class VideoManager {
                 strokeColor,
                 null
         );
-        mExoPlayerView.getSubtitleView().setFractionalTextSize(0.0533f * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
         mExoPlayerView.getSubtitleView().setBottomPaddingFraction(userPreferences.get(UserPreferences.Companion.getSubtitlesOffset()));
+        mExoPlayerView.getSubtitleView().setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * userPreferences.get(UserPreferences.Companion.getSubtitlesTextSize()), true);
         mExoPlayerView.getSubtitleView().setStyle(subtitleStyle);
 
         mExoPlayer.addListener(new Player.Listener() {
