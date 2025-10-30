@@ -20,10 +20,12 @@ fun DreamView(
 	modifier = Modifier
 		.fillMaxSize()
 ) {
+	val fadeMillis = 1_000
+
 	AnimatedContent(
 		targetState = content,
 		transitionSpec = {
-			fadeIn(tween(durationMillis = 1_000)) togetherWith fadeOut(snap(delayMillis = 1_000))
+			fadeIn(tween(durationMillis = fadeMillis)) togetherWith fadeOut(snap(delayMillis = fadeMillis))
 		},
 		label = "DreamContentTransition"
 	) { content ->
@@ -37,5 +39,7 @@ fun DreamView(
 	// Header overlay
 	DreamHeader(
 		showClock = showClock,
+		contentKey = content, // logo changes position on new content
+		fadeMillis = fadeMillis,
 	)
 }
