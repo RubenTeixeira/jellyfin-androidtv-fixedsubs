@@ -60,3 +60,4 @@ jobs:
           retention-days: 14
           if-no-files-found: error
           path: build/jellyfin-publish/
+
